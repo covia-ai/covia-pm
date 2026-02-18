@@ -1,4 +1,4 @@
-import { Grid, Venue, CoviaError } from '@covia-ai/covialib';
+import { Grid, Venue } from '@covia-ai/covialib';
 import pmAssets from '../assets/operations';
 import type { AnalysisResult, MeetingType } from '../types';
 
@@ -39,32 +39,44 @@ export class PMVenueClient {
   private async ensureAssets(): Promise<void> {
     if (this.assetsDeployed || !this.venue) return;
 
+    // Get existing assets from venue
+    let existingAssetNames: Set<string>;
+    try {
+      const existingAssets = await this.venue.getAssets();
+      existingAssetNames = new Set(
+        existingAssets
+          .map(a => a.metadata?.name)
+          .filter((name): name is string => typeof name === 'string')
+      );
+    } catch {
+      // If we can't list assets, assume none exist
+      existingAssetNames = new Set();
+    }
+
+    // Deploy PM assets that don't already exist
     for (const assetMetadata of pmAssets) {
-      const assetId = await this.computeAssetId(assetMetadata);
+      const assetName = (assetMetadata as { name?: string }).name;
+
+      if (!assetName) {
+        console.warn('Asset metadata missing name, skipping:', assetMetadata);
+        continue;
+      }
+
+      if (existingAssetNames.has(assetName)) {
+        console.log(`Asset ${assetName} already exists, skipping`);
+        continue;
+      }
 
       try {
-        await this.venue.getAsset(assetId);
-        // Asset exists, no action needed
+        await this.venue.createAsset(assetMetadata);
+        console.log(`Asset ${assetName} deployed successfully`);
       } catch (e) {
-        if (e instanceof CoviaError && e.code === 404) {
-          // Asset doesn't exist, create it
-          await this.venue.createAsset(assetMetadata);
-        } else {
-          throw e;
-        }
+        console.error(`Failed to deploy asset ${assetName}:`, e);
+        // Continue with other assets even if one fails
       }
     }
 
     this.assetsDeployed = true;
-  }
-
-  private async computeAssetId(metadata: object): Promise<string> {
-    const json = JSON.stringify(metadata);
-    const buffer = new TextEncoder().encode(json);
-    const hash = await crypto.subtle.digest('SHA-256', buffer);
-    return '0x' + Array.from(new Uint8Array(hash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
   }
 
   async analyzeMeeting(notes: string, meetingType: MeetingType = 'ad_hoc'): Promise<AnalysisResult> {
