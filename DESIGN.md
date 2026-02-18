@@ -609,88 +609,171 @@ TypeScript configuration (`tsconfig.app.json`):
 
 Phase 2 defined all PM operations as deployable JSON assets using the venue adapter system.
 
-#### Assets Created
+#### Files Created
 
-| Asset | Adapter | Purpose |
-|-------|---------|---------|
-| `pm:analyzeMeeting` | `langchain:openai` | LLM-powered meeting analysis |
-| `pm:executeJiraActions` | `orchestrator` + `mcp:tools:call` | Create Jira issues |
-| `pm:executeGithubActions` | `orchestrator` + `mcp:tools:call` | GitHub branch/PR operations |
-| `pm:sendNotifications` | `orchestrator` + `mcp:tools:call` | Slack notifications |
-| `pm:fullWorkflow` | `orchestrator` | End-to-end meeting processing |
+| File | Purpose |
+|------|---------|
+| `src/assets/operations/pm-analyzeMeeting.json` | LLM-powered meeting analysis using langchain:openai |
+| `src/assets/operations/pm-executeJiraActions.json` | Jira issue creation via MCP |
+| `src/assets/operations/pm-executeGithubActions.json` | GitHub branch/PR operations via MCP |
+| `src/assets/operations/pm-sendNotifications.json` | Slack notifications via MCP |
+| `src/assets/operations/pm-fullWorkflow.json` | End-to-end orchestration of all operations |
 
-#### pm:analyzeMeeting
+#### pm:analyzeMeeting Implementation
 
-Uses the `langchain:openai` adapter with a structured system prompt to extract:
-- **actionItems**: Array of actions with type, description, assignee, priority, target
-- **blockers**: List of blocking issues mentioned
-- **decisions**: List of decisions made
-
-The system prompt maps meeting content to appropriate targets:
-- Bugs, features, tasks → `target: "jira"`
-- Code reviews, PRs → `target: "github"`
-- Team updates → `target: "slack"`
-
-#### Orchestrator Assets
-
-The execution assets (`pm:executeJiraActions`, `pm:executeGithubActions`, `pm:sendNotifications`) use the orchestrator adapter pattern:
+The meeting analysis asset uses the `langchain:openai` adapter with a structured system prompt:
 
 ```json
 {
+  "name": "pm:analyzeMeeting",
+  "operation": {
+    "adapter": "langchain:openai",
+    "input": {
+      "properties": {
+        "prompt": { "type": "string", "description": "Meeting notes to analyze" },
+        "meetingType": { "enum": ["standup", "planning", "retro", "ad_hoc"] },
+        "model": { "default": "gpt-4-turbo" },
+        "apiKey": { "type": "string", "secret": true }
+      },
+      "required": ["prompt"]
+    },
+    "systemPrompt": "You are an expert project manager assistant..."
+  }
+}
+```
+
+**Output schema** (enforced via system prompt):
+```typescript
+{
+  actionItems: Array<{
+    type: 'create_issue' | 'review_pr' | 'create_branch' | 'send_notification';
+    description: string;
+    assignee: string | null;
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    target: 'jira' | 'github' | 'slack';
+    metadata?: Record<string, unknown>;
+  }>;
+  blockers: string[];
+  decisions: string[];
+}
+```
+
+**Target mapping logic** (in system prompt):
+- Bugs, features, tasks → `target: "jira"`, `type: "create_issue"`
+- Code reviews, PRs → `target: "github"`, `type: "review_pr"`
+- New feature branches → `target: "github"`, `type: "create_branch"`
+- Team updates, announcements → `target: "slack"`, `type: "send_notification"`
+
+#### MCP Execution Assets
+
+The three execution assets follow a consistent pattern using the orchestrator adapter with MCP tool calls:
+
+**pm:executeJiraActions:**
+```json
+{
+  "name": "pm:executeJiraActions",
   "operation": {
     "adapter": "orchestrator",
-    "steps": [
-      {
-        "op": "mcp:tools:call",
-        "input": {
-          "server": ["input", "serverUrl"],
-          "toolName": ["const", "tool_name"],
-          "arguments": { ... }
+    "input": {
+      "properties": {
+        "actions": { "type": "array", "description": "Actions filtered to target='jira'" },
+        "jiraServer": { "type": "string", "description": "MCP server URL" },
+        "projectKey": { "type": "string", "description": "Jira project key" },
+        "token": { "type": "string", "secret": true }
+      }
+    },
+    "steps": [{
+      "op": "mcp:tools:call",
+      "input": {
+        "server": ["input", "jiraServer"],
+        "toolName": ["const", "create_issue"],
+        "arguments": {
+          "project": ["input", "projectKey"],
+          "actions": ["input", "actions"]
         }
       }
+    }]
+  }
+}
+```
+
+**pm:executeGithubActions** and **pm:sendNotifications** follow the same pattern with their respective MCP tool names (`github_operations`, `post_message`).
+
+#### Orchestrator Syntax Reference
+
+The orchestrator adapter uses a special syntax for referencing values:
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `["input", "field"]` | Reference from operation input | `["input", "jiraServer"]` |
+| `["const", value]` | Use a constant value | `["const", "create_issue"]` |
+| `[stepIndex, "field"]` | Reference from step output | `[0, "response"]` |
+| `[stepIndex]` | Reference entire step output | `[1]` |
+
+#### pm:fullWorkflow Implementation
+
+The full workflow orchestrates all operations in sequence:
+
+```json
+{
+  "name": "pm:fullWorkflow",
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "properties": {
+        "notes": { "type": "string" },
+        "meetingType": { "enum": ["standup", "planning", "retro", "ad_hoc"] },
+        "jiraServer": { "type": "string" },
+        "jiraProjectKey": { "type": "string" },
+        "githubServer": { "type": "string" },
+        "githubRepo": { "type": "string" },
+        "slackServer": { "type": "string" },
+        "slackChannel": { "type": "string" },
+        "openaiApiKey": { "type": "string", "secret": true },
+        "jiraToken": { "type": "string", "secret": true },
+        "githubToken": { "type": "string", "secret": true },
+        "slackToken": { "type": "string", "secret": true }
+      },
+      "required": ["notes"]
+    },
+    "steps": [
+      { "op": "pm:analyzeMeeting", "name": "Analyze Meeting Notes" },
+      { "op": "pm:executeJiraActions", "name": "Create Jira Issues" },
+      { "op": "pm:executeGithubActions", "name": "Execute GitHub Actions" },
+      { "op": "pm:sendNotifications", "name": "Send Slack Notifications" }
     ],
     "result": {
-      "results": [0, "result"]
+      "analysis": [0, "response"],
+      "jiraResults": [1],
+      "githubResults": [2],
+      "slackResults": [3]
     }
   }
 }
 ```
 
-Key orchestrator syntax:
-- `["input", "fieldName"]` - Reference input field
-- `["const", value]` - Use constant value
-- `[stepIndex, "field"]` - Reference step output
-
-#### pm:fullWorkflow
-
-Chains all operations in sequence:
-
+**Execution flow:**
 ```
-Step 0: pm:analyzeMeeting
-    ↓ (actions extracted)
+Step 0: pm:analyzeMeeting (LLM extraction)
+    ↓ extracts actionItems, blockers, decisions
 Step 1: pm:executeJiraActions  ←─┐
-Step 2: pm:executeGithubActions ←┼─ All depend on Step 0
+Step 2: pm:executeGithubActions ←┼─ All receive actions from Step 0
 Step 3: pm:sendNotifications   ←─┘
+    ↓
+Result: aggregated outputs from all steps
 ```
 
-Result aggregation:
-```json
-{
-  "analysis": [0, "response"],
-  "jiraResults": [1],
-  "githubResults": [2],
-  "slackResults": [3]
-}
-```
+#### Asset Registry Update
 
-#### Asset Registry
-
-Updated `src/assets/operations/index.ts`:
+Updated `src/assets/operations/index.ts` to export all assets:
 
 ```typescript
+import pmPlaceholder from './pm-placeholder.json';
 import pmAnalyzeMeeting from './pm-analyzeMeeting.json';
 import pmExecuteJiraActions from './pm-executeJiraActions.json';
-// ... other imports
+import pmExecuteGithubActions from './pm-executeGithubActions.json';
+import pmSendNotifications from './pm-sendNotifications.json';
+import pmFullWorkflow from './pm-fullWorkflow.json';
 
 const pmAssets: object[] = [
   pmPlaceholder,
@@ -702,9 +785,31 @@ const pmAssets: object[] = [
 ];
 
 export default pmAssets;
+
+// Named exports for direct access
+export {
+  pmPlaceholder,
+  pmAnalyzeMeeting,
+  pmExecuteJiraActions,
+  pmExecuteGithubActions,
+  pmSendNotifications,
+  pmFullWorkflow,
+};
 ```
 
-All assets are automatically deployed via `ensureAssets()` on venue connection.
+#### Key Design Decisions
+
+1. **LLM-driven extraction** - Meeting analysis uses a detailed system prompt rather than custom NLP code, making it easy to modify behavior by updating the prompt
+
+2. **Target-based routing** - Actions are tagged with `target` field (jira/github/slack) for filtering by execution assets
+
+3. **MCP abstraction** - External services accessed via MCP protocol, allowing venue-side configuration of actual integrations
+
+4. **Flexible authentication** - Each execution asset accepts optional tokens, falling back to venue configuration if not provided
+
+5. **Partial execution support** - Full workflow accepts optional server URLs; missing configurations result in skipped steps rather than errors
+
+6. **Content-addressable deployment** - Asset IDs computed from JSON content hash ensures automatic redeployment when definitions change
 
 ---
 
