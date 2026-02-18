@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import './index.css'
 import { useVenue } from './hooks/useVenue'
 import type { ConnectionStatus } from './hooks/useVenue'
+import { MeetingInput, DelegationPlan } from './components'
+import type { AnalysisResult, MeetingType, AnalysisStatus } from './types'
 
 function ConnectionIndicator({ status, venueId, error }: {
   status: ConnectionStatus;
@@ -67,7 +69,27 @@ function VenueConnect({
 }
 
 function App() {
-  const { status, error, venueId, connect, disconnect } = useVenue();
+  const { client, status, error, venueId, connect, disconnect } = useVenue();
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<Error | null>(null);
+
+  const handleAnalyze = useCallback(async (notes: string, meetingType: MeetingType) => {
+    setAnalysisStatus('analyzing');
+    setAnalysisError(null);
+
+    try {
+      const result = await client.analyzeMeeting(notes, meetingType);
+      setAnalysisResult(result);
+      setAnalysisStatus('success');
+    } catch (e) {
+      setAnalysisError(e instanceof Error ? e : new Error(String(e)));
+      setAnalysisStatus('error');
+    }
+  }, [client]);
+
+  const isConnected = status === 'connected';
+  const isAnalyzing = analysisStatus === 'analyzing';
 
   return (
     <div className="page">
@@ -106,6 +128,17 @@ function App() {
             />
           </div>
         </section>
+
+        <MeetingInput
+          onAnalyze={handleAnalyze}
+          isAnalyzing={isAnalyzing}
+          isConnected={isConnected}
+        />
+
+        <DelegationPlan
+          result={analysisResult}
+          error={analysisError}
+        />
 
         <section className="features" id="features">
           <div className="container">

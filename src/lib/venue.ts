@@ -1,5 +1,8 @@
 import { Grid, Venue, CoviaError } from '@covia-ai/covialib';
 import pmAssets from '../assets/operations';
+import type { AnalysisResult, MeetingType } from '../types';
+
+export type { AnalysisResult };
 
 export interface WorkflowConfig {
   jiraServer?: string;
@@ -8,19 +11,6 @@ export interface WorkflowConfig {
   jiraProjectKey?: string;
   githubRepo?: string;
   slackChannel?: string;
-}
-
-export interface AnalysisResult {
-  actionItems: Array<{
-    type: 'create_issue' | 'review_pr' | 'create_branch' | 'send_notification';
-    description: string;
-    assignee?: string;
-    priority: 'critical' | 'high' | 'medium' | 'low';
-    target: 'jira' | 'github' | 'slack';
-    metadata?: Record<string, unknown>;
-  }>;
-  blockers: string[];
-  decisions: string[];
 }
 
 export class PMVenueClient {
@@ -77,14 +67,45 @@ export class PMVenueClient {
       .join('');
   }
 
-  async analyzeMeeting(notes: string, meetingType = 'ad_hoc'): Promise<AnalysisResult> {
+  async analyzeMeeting(notes: string, meetingType: MeetingType = 'ad_hoc'): Promise<AnalysisResult> {
     if (!this.venue) {
       throw new Error('Not connected to venue');
     }
-    return this.venue.run('pm:analyzeMeeting', {
+
+    const result = await this.venue.run('pm:analyzeMeeting', {
       prompt: notes,
       meetingType
     });
+
+    // The langchain adapter returns { response: string } where response is the LLM output
+    // We need to parse the JSON from the response
+    const responseText = typeof result === 'string' ? result : result?.response;
+
+    if (!responseText) {
+      throw new Error('No response from meeting analysis');
+    }
+
+    try {
+      // Try to extract JSON from the response (LLM might include markdown code blocks)
+      let jsonStr = responseText;
+
+      // Remove markdown code blocks if present
+      const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      }
+
+      const parsed = JSON.parse(jsonStr) as AnalysisResult;
+
+      // Validate the response structure
+      return {
+        actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
+        blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
+        decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [],
+      };
+    } catch (e) {
+      throw new Error(`Failed to parse analysis response: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
   }
 
   async executeFullWorkflow(notes: string, config: WorkflowConfig): Promise<unknown> {
