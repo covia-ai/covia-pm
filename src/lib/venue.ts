@@ -39,21 +39,9 @@ export class PMVenueClient {
   private async ensureAssets(): Promise<void> {
     if (this.assetsDeployed || !this.venue) return;
 
-    // Get existing assets from venue
-    let existingAssetNames: Set<string>;
-    try {
-      const existingAssets = await this.venue.getAssets();
-      existingAssetNames = new Set(
-        existingAssets
-          .map(a => a.metadata?.name)
-          .filter((name): name is string => typeof name === 'string')
-      );
-    } catch {
-      // If we can't list assets, assume none exist
-      existingAssetNames = new Set();
-    }
-
-    // Deploy PM assets that don't already exist
+    // For now, just try to create all assets
+    // The venue will handle duplicates (either reject or update)
+    // In the future, we could add version checking and update logic
     for (const assetMetadata of pmAssets) {
       const assetName = (assetMetadata as { name?: string }).name;
 
@@ -62,17 +50,17 @@ export class PMVenueClient {
         continue;
       }
 
-      if (existingAssetNames.has(assetName)) {
-        console.log(`Asset ${assetName} already exists, skipping`);
-        continue;
-      }
-
       try {
         await this.venue.createAsset(assetMetadata);
         console.log(`Asset ${assetName} deployed successfully`);
       } catch (e) {
-        console.error(`Failed to deploy asset ${assetName}:`, e);
-        // Continue with other assets even if one fails
+        // Asset might already exist - that's OK
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        if (errorMsg.includes('409') || errorMsg.includes('already exists')) {
+          console.log(`Asset ${assetName} already exists`);
+        } else {
+          console.warn(`Asset ${assetName} deployment issue:`, errorMsg);
+        }
       }
     }
 
@@ -84,9 +72,44 @@ export class PMVenueClient {
       throw new Error('Not connected to venue');
     }
 
+    const systemPrompt = `You are an expert project manager assistant. Analyze the provided meeting notes and extract structured information.
+
+You MUST respond with valid JSON only, no markdown or explanation. Use this exact schema:
+
+{
+  "actionItems": [
+    {
+      "type": "create_issue" | "review_pr" | "create_branch" | "send_notification",
+      "description": "Clear description of the action",
+      "assignee": "Person's name or null if unassigned",
+      "priority": "critical" | "high" | "medium" | "low",
+      "target": "jira" | "github" | "slack",
+      "metadata": { "any": "additional context" }
+    }
+  ],
+  "blockers": ["List of blocking issues mentioned"],
+  "decisions": ["List of decisions made in the meeting"]
+}
+
+Guidelines:
+- For standup meetings: Focus on daily tasks, blockers, and handoffs
+- For planning meetings: Extract user stories, estimates, and assignments
+- For retro meetings: Capture action items from retrospective discussions
+- For ad_hoc meetings: General action item extraction
+
+Map actions to targets:
+- Bugs, features, tasks -> target: "jira", type: "create_issue"
+- Code reviews, PRs -> target: "github", type: "review_pr"
+- New feature branches -> target: "github", type: "create_branch"
+- Team updates, announcements -> target: "slack", type: "send_notification"
+
+Respond with JSON only.`;
+
     const result = await this.venue.run('pm:analyzeMeeting', {
       prompt: notes,
-      meetingType
+      meetingType,
+      systemPrompt,
+      model: 'gpt-4-turbo'
     });
 
     // The langchain adapter returns { response: string } where response is the LLM output
