@@ -167,14 +167,38 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 
 ---
 
-### Phase 3: Meeting Analysis UI - PLANNED
+### Phase 3: Meeting Analysis UI - COMPLETED
 
-**Will include:**
-- Meeting notes input textarea
+**What works:**
+- Meeting notes input textarea with placeholder examples
 - Meeting type selector (standup/planning/retro/ad_hoc)
-- "Analyze" button to invoke `pm:analyzeMeeting`
+- "Analyze" button with loading spinner
 - Delegation plan display showing extracted action items
 - Action items grouped by target (Jira/GitHub/Slack)
+- Priority badges (critical/high/medium/low)
+- Blockers and decisions lists
+- Error state handling
+
+**Components:**
+
+| Component | Purpose |
+|-----------|---------|
+| `MeetingInput` | Form with textarea and meeting type buttons |
+| `DelegationPlan` | Displays action items grouped by target |
+
+**Files:**
+- `src/components/MeetingInput.tsx` - Meeting input form
+- `src/components/DelegationPlan.tsx` - Results display
+- `src/types.ts` - Shared TypeScript types
+
+**Try it:**
+1. Run `pnpm dev`
+2. Connect to a venue
+3. Paste meeting notes in the textarea
+4. Select meeting type and click "Analyze Meeting"
+5. View extracted action items in the delegation plan
+
+**Note:** Requires a running venue with OpenAI API key configured for the `langchain:openai` adapter.
 
 ---
 
