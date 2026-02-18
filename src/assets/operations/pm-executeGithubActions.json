@@ -1,0 +1,81 @@
+{
+  "name": "pm:executeGithubActions",
+  "description": "Execute GitHub-targeted action items by creating branches and PRs via MCP. Processes action items with target='github'.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-18T00:00:00Z",
+  "keywords": ["github", "branches", "pull-requests", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (should be filtered to target='github')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["create_branch", "review_pr"] },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "githubServer": {
+          "type": "string",
+          "description": "MCP server URL for GitHub integration"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository in owner/repo format (e.g., 'covia-ai/covia-pm')"
+        },
+        "baseBranch": {
+          "type": "string",
+          "default": "main",
+          "description": "Base branch for new branches"
+        },
+        "token": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for MCP server"
+        }
+      },
+      "required": ["actions", "githubServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "description": "Results from each GitHub operation"
+        },
+        "summary": {
+          "type": "object",
+          "description": "Summary of execution results"
+        }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Execute GitHub Actions",
+        "input": {
+          "server": ["input", "githubServer"],
+          "toolName": ["const", "github_operations"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "baseBranch": ["input", "baseBranch"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

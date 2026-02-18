@@ -1,0 +1,75 @@
+{
+  "name": "pm:executeJiraActions",
+  "description": "Execute Jira-targeted action items by creating issues via MCP. Processes action items with target='jira' and creates corresponding Jira issues.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-18T00:00:00Z",
+  "keywords": ["jira", "issues", "project-management", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (should be filtered to target='jira')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "jiraServer": {
+          "type": "string",
+          "description": "MCP server URL for Jira integration"
+        },
+        "projectKey": {
+          "type": "string",
+          "description": "Jira project key (e.g., 'PROJ', 'ENG')"
+        },
+        "token": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for MCP server"
+        }
+      },
+      "required": ["actions", "jiraServer", "projectKey"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "description": "Results from each Jira issue creation"
+        },
+        "summary": {
+          "type": "object",
+          "description": "Summary of execution results"
+        }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Jira Issues",
+        "input": {
+          "server": ["input", "jiraServer"],
+          "toolName": ["const", "create_issue"],
+          "arguments": {
+            "project": ["input", "projectKey"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

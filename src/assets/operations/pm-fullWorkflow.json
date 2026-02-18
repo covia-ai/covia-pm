@@ -1,0 +1,138 @@
+{
+  "name": "pm:fullWorkflow",
+  "description": "End-to-end meeting processing workflow. Analyzes meeting notes, extracts action items, and executes them across Jira, GitHub, and Slack.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-18T00:00:00Z",
+  "keywords": ["workflow", "meeting", "automation", "end-to-end"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "string",
+          "description": "Raw meeting notes to process"
+        },
+        "meetingType": {
+          "type": "string",
+          "enum": ["standup", "planning", "retro", "ad_hoc"],
+          "default": "ad_hoc",
+          "description": "Type of meeting for context-aware extraction"
+        },
+        "jiraServer": {
+          "type": "string",
+          "description": "MCP server URL for Jira integration"
+        },
+        "jiraProjectKey": {
+          "type": "string",
+          "description": "Jira project key"
+        },
+        "githubServer": {
+          "type": "string",
+          "description": "MCP server URL for GitHub integration"
+        },
+        "githubRepo": {
+          "type": "string",
+          "description": "GitHub repository (owner/repo)"
+        },
+        "slackServer": {
+          "type": "string",
+          "description": "MCP server URL for Slack integration"
+        },
+        "slackChannel": {
+          "type": "string",
+          "description": "Slack channel for notifications"
+        },
+        "openaiApiKey": {
+          "type": "string",
+          "secret": true,
+          "description": "OpenAI API key for meeting analysis"
+        },
+        "jiraToken": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for Jira MCP server"
+        },
+        "githubToken": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for GitHub MCP server"
+        },
+        "slackToken": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for Slack MCP server"
+        }
+      },
+      "required": ["notes"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "object",
+          "description": "Extracted action items, blockers, and decisions"
+        },
+        "jiraResults": {
+          "type": "object",
+          "description": "Results from Jira issue creation"
+        },
+        "githubResults": {
+          "type": "object",
+          "description": "Results from GitHub operations"
+        },
+        "slackResults": {
+          "type": "object",
+          "description": "Results from Slack notifications"
+        }
+      }
+    },
+    "steps": [
+      {
+        "op": "pm:analyzeMeeting",
+        "name": "Analyze Meeting Notes",
+        "input": {
+          "prompt": ["input", "notes"],
+          "meetingType": ["input", "meetingType"],
+          "apiKey": ["input", "openaiApiKey"]
+        }
+      },
+      {
+        "op": "pm:executeJiraActions",
+        "name": "Create Jira Issues",
+        "input": {
+          "actions": [0, "response"],
+          "jiraServer": ["input", "jiraServer"],
+          "projectKey": ["input", "jiraProjectKey"],
+          "token": ["input", "jiraToken"]
+        }
+      },
+      {
+        "op": "pm:executeGithubActions",
+        "name": "Execute GitHub Actions",
+        "input": {
+          "actions": [0, "response"],
+          "githubServer": ["input", "githubServer"],
+          "repo": ["input", "githubRepo"],
+          "token": ["input", "githubToken"]
+        }
+      },
+      {
+        "op": "pm:sendNotifications",
+        "name": "Send Slack Notifications",
+        "input": {
+          "actions": [0, "response"],
+          "slackServer": ["input", "slackServer"],
+          "channel": ["input", "slackChannel"],
+          "token": ["input", "slackToken"]
+        }
+      }
+    ],
+    "result": {
+      "analysis": [0, "response"],
+      "jiraResults": [1],
+      "githubResults": [2],
+      "slackResults": [3]
+    }
+  }
+}

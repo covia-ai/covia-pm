@@ -1,0 +1,46 @@
+{
+  "name": "pm:analyzeMeeting",
+  "description": "Extract action items, blockers, and decisions from meeting notes using LLM analysis. Returns structured data for delegation to Jira, GitHub, and Slack.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-18T00:00:00Z",
+  "keywords": ["meeting", "analysis", "action-items", "project-management"],
+  "operation": {
+    "adapter": "langchain:openai",
+    "input": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "The meeting notes to analyze"
+        },
+        "meetingType": {
+          "type": "string",
+          "enum": ["standup", "planning", "retro", "ad_hoc"],
+          "default": "ad_hoc",
+          "description": "Type of meeting for context-aware extraction"
+        },
+        "model": {
+          "type": "string",
+          "default": "gpt-4-turbo",
+          "description": "LLM model to use for analysis"
+        },
+        "apiKey": {
+          "type": "string",
+          "secret": true,
+          "description": "OpenAI API key (optional, uses venue config if not provided)"
+        }
+      },
+      "required": ["prompt"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "response": {
+          "type": "string",
+          "description": "Raw LLM response (JSON string)"
+        }
+      }
+    },
+    "systemPrompt": "You are an expert project manager assistant. Analyze the provided meeting notes and extract structured information.\n\nYou MUST respond with valid JSON only, no markdown or explanation. Use this exact schema:\n\n{\n  \"actionItems\": [\n    {\n      \"type\": \"create_issue\" | \"review_pr\" | \"create_branch\" | \"send_notification\",\n      \"description\": \"Clear description of the action\",\n      \"assignee\": \"Person's name or null if unassigned\",\n      \"priority\": \"critical\" | \"high\" | \"medium\" | \"low\",\n      \"target\": \"jira\" | \"github\" | \"slack\",\n      \"metadata\": { \"any\": \"additional context\" }\n    }\n  ],\n  \"blockers\": [\"List of blocking issues mentioned\"],\n  \"decisions\": [\"List of decisions made in the meeting\"]\n}\n\nGuidelines:\n- For standup meetings: Focus on daily tasks, blockers, and handoffs\n- For planning meetings: Extract user stories, estimates, and assignments\n- For retro meetings: Capture action items from retrospective discussions\n- For ad_hoc meetings: General action item extraction\n\nMap actions to targets:\n- Bugs, features, tasks -> target: \"jira\", type: \"create_issue\"\n- Code reviews, PRs -> target: \"github\", type: \"review_pr\"\n- New feature branches -> target: \"github\", type: \"create_branch\"\n- Team updates, announcements -> target: \"slack\", type: \"send_notification\"\n\nRespond with JSON only."
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "pm:sendNotifications",
+  "description": "Send Slack notifications for action items via MCP. Processes action items with target='slack' and posts messages to the configured channel.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-18T00:00:00Z",
+  "keywords": ["slack", "notifications", "messaging", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to notify about (should be filtered to target='slack')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "slackServer": {
+          "type": "string",
+          "description": "MCP server URL for Slack integration"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Slack channel ID or name (e.g., '#updates', 'C0123456789')"
+        },
+        "mentionUsers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to @mention assignees in notifications"
+        },
+        "token": {
+          "type": "string",
+          "secret": true,
+          "description": "Authentication token for MCP server"
+        }
+      },
+      "required": ["actions", "slackServer", "channel"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "description": "Results from each Slack notification"
+        },
+        "summary": {
+          "type": "object",
+          "description": "Summary of notifications sent"
+        }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Send Slack Notifications",
+        "input": {
+          "server": ["input", "slackServer"],
+          "toolName": ["const", "post_message"],
+          "arguments": {
+            "channel": ["input", "channel"],
+            "mentionUsers": ["input", "mentionUsers"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}
