@@ -115,12 +115,26 @@ Respond with JSON only.`;
       model: 'gpt-4-turbo'
     });
 
+    // Log the result for debugging
+    console.log('LLM result:', result);
+
     // The langchain adapter returns { response: string } where response is the LLM output
-    // We need to parse the JSON from the response
-    const responseText = typeof result === 'string' ? result : result?.response;
+    // venue.run() returns the job output directly
+    // Handle various response formats
+    let responseText: string | undefined;
+
+    if (typeof result === 'string') {
+      responseText = result;
+    } else if (result?.response) {
+      responseText = result.response;
+    } else if (result) {
+      // Maybe the result IS the response directly
+      responseText = JSON.stringify(result);
+    }
 
     if (!responseText) {
-      throw new Error('No response from meeting analysis');
+      // Provide more context about what we received
+      throw new Error(`No response from meeting analysis. Received: ${JSON.stringify(result)}`);
     }
 
     try {
