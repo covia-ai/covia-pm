@@ -1,6 +1,74 @@
+import { useState } from 'react'
 import './index.css'
+import { useVenue } from './hooks/useVenue'
+import type { ConnectionStatus } from './hooks/useVenue'
+
+function ConnectionIndicator({ status, venueId, error }: {
+  status: ConnectionStatus;
+  venueId: string | null;
+  error: Error | null;
+}) {
+  const statusConfig = {
+    disconnected: { label: 'Disconnected', className: '' },
+    connecting: { label: 'Connecting...', className: 'badge-warning' },
+    connected: { label: 'Connected', className: 'badge-success' },
+    error: { label: 'Error', className: 'badge-error' },
+  };
+
+  const config = statusConfig[status];
+
+  return (
+    <div className="connection-indicator">
+      <span className={`badge ${config.className}`}>{config.label}</span>
+      {venueId && <span className="text-sm text-muted">{venueId}</span>}
+      {error && <span className="text-sm text-muted">{error.message}</span>}
+    </div>
+  );
+}
+
+function VenueConnect({
+  status,
+  onConnect,
+  onDisconnect
+}: {
+  status: ConnectionStatus;
+  onConnect: (url: string) => void;
+  onDisconnect: () => void;
+}) {
+  const [url, setUrl] = useState(import.meta.env.VITE_VENUE_URL || 'http://localhost:8080');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (status === 'connected') {
+      onDisconnect();
+    } else {
+      onConnect(url);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="venue-connect">
+      <input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="Venue URL"
+        disabled={status === 'connecting' || status === 'connected'}
+      />
+      <button
+        type="submit"
+        className={status === 'connected' ? 'button-outline' : 'button-primary'}
+        disabled={status === 'connecting'}
+      >
+        {status === 'connected' ? 'Disconnect' : status === 'connecting' ? 'Connecting...' : 'Connect'}
+      </button>
+    </form>
+  );
+}
 
 function App() {
+  const { status, error, venueId, connect, disconnect } = useVenue();
+
   return (
     <div className="page">
       <header>
@@ -12,11 +80,14 @@ function App() {
             </svg>
             <span>Covia PM</span>
           </a>
-          <nav>
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-            <a href="https://docs.covia.ai" target="_blank" rel="noopener">Docs</a>
-          </nav>
+          <div className="flex items-center gap-md">
+            <ConnectionIndicator status={status} venueId={venueId} error={error} />
+            <nav>
+              <a href="#features">Features</a>
+              <a href="#about">About</a>
+              <a href="https://docs.covia.ai" target="_blank" rel="noopener">Docs</a>
+            </nav>
+          </div>
         </div>
       </header>
 
@@ -28,10 +99,11 @@ function App() {
               Coordinate AI agents across Jira, GitHub, and Slack with shared
               execution state, immutable audit trails, and runtime policy enforcement.
             </p>
-            <div className="hero-actions">
-              <button className="button-primary">Get Started</button>
-              <button className="button-outline">Learn More</button>
-            </div>
+            <VenueConnect
+              status={status}
+              onConnect={connect}
+              onDisconnect={disconnect}
+            />
           </div>
         </section>
 

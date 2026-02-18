@@ -1,0 +1,23 @@
+{
+  "name": "pm:placeholder",
+  "description": "Placeholder operation for testing asset deployment",
+  "type": "operation",
+  "operation": {
+    "adapter": "echo",
+    "config": {
+      "message": "Covia PM placeholder asset deployed successfully"
+    }
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "test": { "type": "string" }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "message": { "type": "string" }
+    }
+  }
+}

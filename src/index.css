@@ -430,3 +430,27 @@ nav a:hover {
   color: var(--color-muted-foreground);
   margin: 0;
 }
+
+/* Connection indicator */
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Venue connect form */
+.venue-connect {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  max-width: 500px;
+  margin: var(--spacing-lg) auto 0;
+}
+
+.venue-connect input {
+  flex: 1;
+}
+
+.venue-connect button {
+  white-space: nowrap;
+}
