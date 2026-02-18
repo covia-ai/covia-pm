@@ -424,18 +424,18 @@ covia-pm/
 
 **Deliverable:** Frontend connects to venue and deploys placeholder asset
 
-### Phase 2: Asset Definitions (Week 1-2)
+### Phase 2: Asset Definitions (Week 1-2) - COMPLETED
 
 **Goal:** Define all PM operations as deployable JSON assets
 
-- [ ] Create `src/assets/operations/` directory structure
-- [ ] Define `pm-analyzeMeeting.json` with langchain adapter config
-- [ ] Define `pm-executeJiraActions.json` with orchestrator + MCP steps
-- [ ] Define `pm-executeGithubActions.json`
-- [ ] Define `pm-sendNotifications.json`
-- [ ] Define `pm-fullWorkflow.json` (end-to-end orchestration)
-- [ ] Create `index.ts` to export all assets for deployment
-- [ ] Update `ensureAssets()` to deploy all operations
+- [x] Create `src/assets/operations/` directory structure
+- [x] Define `pm-analyzeMeeting.json` with langchain adapter config
+- [x] Define `pm-executeJiraActions.json` with orchestrator + MCP steps
+- [x] Define `pm-executeGithubActions.json`
+- [x] Define `pm-sendNotifications.json`
+- [x] Define `pm-fullWorkflow.json` (end-to-end orchestration)
+- [x] Create `index.ts` to export all assets for deployment
+- [x] Update `ensureAssets()` to deploy all operations
 
 **Deliverable:** All PM operations registered as venue assets on connect
 
@@ -604,6 +604,107 @@ VITE_VENUE_URL=http://localhost:8080
 
 TypeScript configuration (`tsconfig.app.json`):
 - Added `resolveJsonModule: true` for JSON asset imports
+
+### Phase 2: Asset Definitions (Completed)
+
+Phase 2 defined all PM operations as deployable JSON assets using the venue adapter system.
+
+#### Assets Created
+
+| Asset | Adapter | Purpose |
+|-------|---------|---------|
+| `pm:analyzeMeeting` | `langchain:openai` | LLM-powered meeting analysis |
+| `pm:executeJiraActions` | `orchestrator` + `mcp:tools:call` | Create Jira issues |
+| `pm:executeGithubActions` | `orchestrator` + `mcp:tools:call` | GitHub branch/PR operations |
+| `pm:sendNotifications` | `orchestrator` + `mcp:tools:call` | Slack notifications |
+| `pm:fullWorkflow` | `orchestrator` | End-to-end meeting processing |
+
+#### pm:analyzeMeeting
+
+Uses the `langchain:openai` adapter with a structured system prompt to extract:
+- **actionItems**: Array of actions with type, description, assignee, priority, target
+- **blockers**: List of blocking issues mentioned
+- **decisions**: List of decisions made
+
+The system prompt maps meeting content to appropriate targets:
+- Bugs, features, tasks → `target: "jira"`
+- Code reviews, PRs → `target: "github"`
+- Team updates → `target: "slack"`
+
+#### Orchestrator Assets
+
+The execution assets (`pm:executeJiraActions`, `pm:executeGithubActions`, `pm:sendNotifications`) use the orchestrator adapter pattern:
+
+```json
+{
+  "operation": {
+    "adapter": "orchestrator",
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "input": {
+          "server": ["input", "serverUrl"],
+          "toolName": ["const", "tool_name"],
+          "arguments": { ... }
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"]
+    }
+  }
+}
+```
+
+Key orchestrator syntax:
+- `["input", "fieldName"]` - Reference input field
+- `["const", value]` - Use constant value
+- `[stepIndex, "field"]` - Reference step output
+
+#### pm:fullWorkflow
+
+Chains all operations in sequence:
+
+```
+Step 0: pm:analyzeMeeting
+    ↓ (actions extracted)
+Step 1: pm:executeJiraActions  ←─┐
+Step 2: pm:executeGithubActions ←┼─ All depend on Step 0
+Step 3: pm:sendNotifications   ←─┘
+```
+
+Result aggregation:
+```json
+{
+  "analysis": [0, "response"],
+  "jiraResults": [1],
+  "githubResults": [2],
+  "slackResults": [3]
+}
+```
+
+#### Asset Registry
+
+Updated `src/assets/operations/index.ts`:
+
+```typescript
+import pmAnalyzeMeeting from './pm-analyzeMeeting.json';
+import pmExecuteJiraActions from './pm-executeJiraActions.json';
+// ... other imports
+
+const pmAssets: object[] = [
+  pmPlaceholder,
+  pmAnalyzeMeeting,
+  pmExecuteJiraActions,
+  pmExecuteGithubActions,
+  pmSendNotifications,
+  pmFullWorkflow,
+];
+
+export default pmAssets;
+```
+
+All assets are automatically deployed via `ensureAssets()` on venue connection.
 
 ---
 
