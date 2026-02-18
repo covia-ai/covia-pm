@@ -72,7 +72,16 @@ export class PMVenueClient {
       throw new Error('Not connected to venue');
     }
 
+    const meetingContext = {
+      standup: 'This is a daily standup meeting. Focus on daily tasks, blockers, and handoffs.',
+      planning: 'This is a sprint/project planning meeting. Extract user stories, estimates, and assignments.',
+      retro: 'This is a retrospective meeting. Capture action items from retrospective discussions.',
+      ad_hoc: 'This is a general meeting. Extract all action items mentioned.'
+    };
+
     const systemPrompt = `You are an expert project manager assistant. Analyze the provided meeting notes and extract structured information.
+
+Meeting context: ${meetingContext[meetingType]}
 
 You MUST respond with valid JSON only, no markdown or explanation. Use this exact schema:
 
@@ -91,12 +100,6 @@ You MUST respond with valid JSON only, no markdown or explanation. Use this exac
   "decisions": ["List of decisions made in the meeting"]
 }
 
-Guidelines:
-- For standup meetings: Focus on daily tasks, blockers, and handoffs
-- For planning meetings: Extract user stories, estimates, and assignments
-- For retro meetings: Capture action items from retrospective discussions
-- For ad_hoc meetings: General action item extraction
-
 Map actions to targets:
 - Bugs, features, tasks -> target: "jira", type: "create_issue"
 - Code reviews, PRs -> target: "github", type: "review_pr"
@@ -105,9 +108,9 @@ Map actions to targets:
 
 Respond with JSON only.`;
 
-    const result = await this.venue.run('pm:analyzeMeeting', {
+    // Call langchain:openai directly since venue requires asset hex IDs or adapter:operation format
+    const result = await this.venue.run('langchain:openai', {
       prompt: notes,
-      meetingType,
       systemPrompt,
       model: 'gpt-4-turbo'
     });
