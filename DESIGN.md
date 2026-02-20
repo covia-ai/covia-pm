@@ -1223,9 +1223,33 @@ High-impact tools with broad adoption and MCP servers that are either already av
 
 #### Meeting Intelligence
 
-| Tool | Asset | Operations |
-|------|-------|------------|
-| **Fireflies.ai / Otter.ai** | `pm:fetchTranscript` | Pull transcript directly — removes manual paste step |
+Integrating with call summary tools removes the manual paste step entirely — the agent fetches the transcript or AI summary directly from the tool and feeds it into `pm:analyzeMeeting`. Each tool exposes a slightly different API surface (some provide raw transcripts, others structured summaries with pre-extracted action items), so each gets its own asset to handle the mapping correctly.
+
+| Tool | Asset | Notes |
+|------|-------|-------|
+| **Granola** | `pm:fetchGranolaNote` | Pulls the AI-enhanced meeting note; Granola structures notes as editable docs so the asset extracts the transcript or summary section |
+| **Fathom** | `pm:fetchFathomSummary` | Fetches the AI-generated summary and action items; Fathom already extracts items so the asset can optionally bypass `pm:analyzeMeeting` and map directly |
+| **Fireflies.ai** | `pm:fetchFirefliesTranscript` | Fetches full transcript and/or AI summary via Fireflies GraphQL API |
+| **Otter.ai** | `pm:fetchOtterTranscript` | Pulls transcript from Otter conversation by meeting ID or URL |
+| **tl;dv** | `pm:fetchTldvHighlights` | Retrieves highlights, clips, and summary; useful for async review workflows |
+| **Avoma** | `pm:fetchAvomaSummary` | Fetches structured meeting notes including agenda, notes, and action items |
+| **Read.ai** | `pm:fetchReadSummary` | Pulls meeting report including engagement metrics and extracted topics |
+| **Zoom AI Companion** | `pm:fetchZoomAISummary` | Retrieves Zoom's built-in AI meeting summary (no third-party tool required for Zoom users) |
+| **Microsoft Copilot (Teams)** | `pm:fetchTeamsMeetingSummary` | Pulls Teams meeting intelligence summary via Graph API |
+
+**Fetch-then-analyse pattern:**
+
+```
+pm:fetchGranolaNote  (or any source above)
+        │
+        ▼  transcript / summary text
+pm:analyzeMeeting    (LLM extraction → structured ActionItems)
+        │
+        ▼
+pm:executeJiraActions / pm:executeGitLabActions / pm:sendTeamsNotifications …
+```
+
+Tools like Fathom and Avoma that already extract action items can optionally short-circuit `pm:analyzeMeeting` and feed directly into the execution layer, reducing LLM calls for structured sources.
 
 **Wave 1 goal:** Cover the majority of engineering teams regardless of whether they use GitHub or GitLab, Slack or Teams, Jira or Linear.
 
