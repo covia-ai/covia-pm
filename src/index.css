@@ -940,3 +940,44 @@ nav a:hover {
 .error-text {
   color: var(--color-error);
 }
+
+/* Error boundary full-page fallback */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  background: var(--color-background);
+}
+
+.error-boundary-card {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.error-boundary-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto var(--spacing-md);
+  color: var(--color-error);
+}
+
+.error-boundary-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.error-boundary-card h2 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-boundary-card p {
+  margin-bottom: var(--spacing-lg);
+}
