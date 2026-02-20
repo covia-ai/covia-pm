@@ -376,6 +376,7 @@ covia-pm/
 │   │   └── useSettings.ts                  # Settings persistence (localStorage)
 │   ├── components/
 │   │   ├── index.ts                        # Barrel exports
+│   │   ├── ErrorBoundary.tsx               # Full-page render error fallback
 │   │   ├── MeetingInput.tsx
 │   │   ├── DelegationPlan.tsx              # Action items + Execute Plan button
 │   │   ├── ExecutionView.tsx               # Step-by-step execution progress
@@ -476,7 +477,7 @@ covia-pm/
 
 **Deliverable:** End-to-end workflow from meeting notes to executed actions
 
-### Phase 5: Configuration & Polish (Week 3-4) - IN PROGRESS
+### Phase 5: Configuration & Polish (Week 3-4) - COMPLETED
 
 **Goal:** Production-ready configuration and UX
 
@@ -485,9 +486,9 @@ covia-pm/
 - [x] Slack channel selection
 - [x] Auth tokens (Jira, GitHub, Slack) with show/hide toggle
 - [x] Persist configuration in localStorage
-- [ ] Dark mode toggle (already supported in CSS)
-- [ ] Responsive design verification
-- [ ] Error boundary implementation
+- [x] Dark mode toggle (moon/sun icon, persisted in localStorage)
+- [x] Responsive design (breakpoints at 768px and 480px)
+- [x] Error boundary (full-page fallback with "Try again" button)
 
 **Deliverable:** Fully configurable, polished application
 
@@ -1049,9 +1050,9 @@ interface ExecutionViewProps {
 
 ---
 
-### Phase 5: Configuration & Polish (In Progress)
+### Phase 5: Configuration & Polish (Completed)
 
-Phase 5 (partial) added a settings panel and localStorage persistence so users can configure MCP server endpoints and credentials before executing workflows.
+Phase 5 added a settings panel, dark mode, responsive breakpoints, and an error boundary.
 
 #### Bug Fixes (covialib)
 
@@ -1134,7 +1135,22 @@ interface SettingsPanelProps {
 
 2. **Token security** — Tokens are stored in `localStorage` for development convenience. For production deployments the venue server should hold credentials server-side; token fields should be cleared or omitted.
 
-3. **Settings passed to workflow** — The `settings` object from `useSettings` is available in `App.tsx` and will be spread into `executeFullWorkflow()` as `WorkflowConfig` fields when Phase 4 execution is implemented.
+3. **Settings passed to workflow** — The `settings` object from `useSettings` is available in `App.tsx` and is passed directly into `executeActions()` as part of Phase 4.
+
+#### Dark Mode Toggle
+
+A `useDarkMode` hook in `App.tsx` toggles the `.dark` class on `document.documentElement`, activating the CSS variable overrides already defined in `index.css`. The preference is persisted in `localStorage` under `covia-pm-dark`. A moon/sun SVG button in the header triggers the toggle.
+
+#### Responsive Design
+
+Two breakpoints were added to `index.css`:
+
+- **768px** — scales down `h1`/`h2`/`h3`, reduces container padding, hides header nav links, stacks the venue-connect form and footer vertically, expands the settings drawer to full width, and stacks the execute-plan footer.
+- **480px** — truncates long venue IDs in the connection indicator with `text-overflow: ellipsis`.
+
+#### Error Boundary
+
+`src/components/ErrorBoundary.tsx` is a class component wrapping `<App />` in `main.tsx`. It catches unhandled render errors via `getDerivedStateFromError`, logs them with `componentDidCatch`, and displays a centred fallback card with the error message and a "Try again" button that calls `this.setState({ error: null })` to re-attempt rendering.
 
 ---
 

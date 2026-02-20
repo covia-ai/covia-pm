@@ -240,10 +240,9 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 - ✅ Auth token fields (Jira, GitHub, Slack) with show/hide toggle
 - ✅ Configuration persistence in localStorage (`covia-pm-settings`)
 
-**Remaining:**
-- Dark mode toggle
-- Responsive design verification
-- Error boundary implementation
+- ✅ Dark mode toggle (moon/sun icon button in header, persisted in localStorage)
+- ✅ Responsive design (breakpoints at 768px and 480px)
+- ✅ Error boundary (full-page fallback with "Try again" button)
 
 ---
 
@@ -345,6 +344,7 @@ covia-pm/
 │   │   └── venue.ts              # PMVenueClient class
 │   ├── components/
 │   │   ├── index.ts              # Barrel exports
+│   │   ├── ErrorBoundary.tsx     # Full-page render error fallback
 │   │   ├── MeetingInput.tsx      # Meeting notes form
 │   │   ├── DelegationPlan.tsx    # Action items display + Execute Plan button
 │   │   ├── ExecutionView.tsx     # Step-by-step execution progress
