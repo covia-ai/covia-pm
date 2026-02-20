@@ -294,8 +294,81 @@ label {
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
 @media (max-width: 768px) {
+  /* Grids */
   .grid-2, .grid-3 {
     grid-template-columns: 1fr;
+  }
+
+  /* Typography */
+  h1 { font-size: var(--font-size-3xl); }
+  h2 { font-size: var(--font-size-2xl); }
+  h3 { font-size: var(--font-size-xl); }
+
+  /* Layout */
+  .container { padding: 0 var(--spacing-md); }
+  main { padding: var(--spacing-xl) 0; }
+
+  /* Header — hide nav links, let remaining items wrap */
+  header nav { display: none; }
+  header .container { flex-wrap: wrap; gap: var(--spacing-sm); }
+
+  /* Hero */
+  .hero { padding: var(--spacing-xl) 0; }
+  .hero p { font-size: var(--font-size-base); }
+
+  /* Venue connect — stack input above button */
+  .venue-connect {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .venue-connect button {
+    width: 100%;
+  }
+
+  /* Footer — stack links below copyright */
+  footer .container {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    text-align: center;
+  }
+  footer nav {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Execute plan footer — stack warning and button */
+  .execute-plan-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .execute-warning {
+    text-align: center;
+  }
+  .execute-button {
+    width: 100%;
+  }
+  .execute-plan-footer .button-outline {
+    width: 100%;
+  }
+
+  /* Settings drawer — full width on mobile */
+  .settings-drawer {
+    width: 100vw;
+  }
+
+  /* Execution step — allow badge to wrap below label on very narrow */
+  .execution-step {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Truncate venue ID in connection indicator on very small screens */
+  .connection-indicator .text-sm:first-of-type {
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
