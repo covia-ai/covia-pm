@@ -332,14 +332,17 @@ User pastes meeting notes
 ### Environment Variables
 
 ```bash
-# .env
+# .env.example / .env.local
 VITE_VENUE_URL=https://venue.covia.ai
-VITE_OPENAI_API_KEY=sk-...  # Passed to venue for LLM calls
+
+# Development only: passes OpenAI key directly to the venue's LangChain adapter.
+# Prefer setting OPENAI_API_KEY on the venue server for production.
+VITE_OPENAI_API_KEY=sk-...
 ```
 
 ### MCP Server Configuration
 
-MCP servers are configured per-invocation:
+MCP servers are configured via the settings panel (persisted in `localStorage`) and passed at invocation time:
 
 ```typescript
 await client.executeFullWorkflow(notes, {
@@ -360,6 +363,7 @@ covia-pm/
 │   ├── assets/
 │   │   └── operations/
 │   │       ├── index.ts                    # Export all assets
+│   │       ├── pm-placeholder.json
 │   │       ├── pm-analyzeMeeting.json
 │   │       ├── pm-executeJiraActions.json
 │   │       ├── pm-executeGithubActions.json
@@ -368,14 +372,20 @@ covia-pm/
 │   ├── lib/
 │   │   └── venue.ts                        # PMVenueClient
 │   ├── hooks/
-│   │   └── useVenue.ts                     # React hook
+│   │   ├── useVenue.ts                     # Venue connection state
+│   │   └── useSettings.ts                  # Settings persistence (localStorage)
 │   ├── components/
+│   │   ├── index.ts                        # Barrel exports
 │   │   ├── MeetingInput.tsx
-│   │   ├── DelegationPlan.tsx
-│   │   └── ExecutionResults.tsx
+│   │   ├── DelegationPlan.tsx              # Action items + Execute Plan button
+│   │   ├── ExecutionView.tsx               # Step-by-step execution progress
+│   │   └── SettingsPanel.tsx               # Configuration slide-out drawer
+│   ├── types.ts                            # Shared TypeScript types
 │   ├── App.tsx
 │   ├── main.tsx
 │   └── index.css
+├── .env.example                            # Environment template
+├── .env.local                              # Local overrides (not committed)
 ├── DESIGN.md                               # This document
 ├── CLAUDE.md                               # Development guide
 └── package.json
@@ -452,27 +462,29 @@ covia-pm/
 
 **Deliverable:** User can paste meeting notes and see extracted action items
 
-### Phase 4: Plan Execution (Week 3)
+### Phase 4: Plan Execution (Week 3) - COMPLETED
 
 **Goal:** Execute delegation plans across external services
 
-- [ ] Create `ExecutionResults` component with progress tracking
-- [ ] Implement `executeFullWorkflow()` invocation
-- [ ] Add MCP server configuration UI (Jira, GitHub, Slack URLs)
-- [ ] Display per-action execution status (pending/running/success/error)
-- [ ] Handle partial failures gracefully
-- [ ] Add manual approval step before execution (optional)
+- [x] Create `ExecutionView` component with per-step progress tracking
+- [x] Implement `executeActions()` on `PMVenueClient` (Jira / GitHub / Slack sub-operations)
+- [x] Resolve PM asset hex IDs via `buildAssetIdMap()` after connect (venue requires hex IDs, not names)
+- [x] Execute Plan button on `DelegationPlan` — disabled with warning when no integrations configured
+- [x] Display per-step status (pending / running / success / error / skipped)
+- [x] Collapsible result display per step on completion
+- [x] "Back to Plan" and "Start New Analysis" navigation
 
 **Deliverable:** End-to-end workflow from meeting notes to executed actions
 
-### Phase 5: Configuration & Polish (Week 3-4)
+### Phase 5: Configuration & Polish (Week 3-4) - IN PROGRESS
 
 **Goal:** Production-ready configuration and UX
 
-- [ ] Settings panel for MCP server endpoints
-- [ ] Jira project key and GitHub repo configuration
-- [ ] Slack channel selection
-- [ ] Persist configuration in localStorage
+- [x] Settings panel for MCP server endpoints
+- [x] Jira project key and GitHub repo configuration
+- [x] Slack channel selection
+- [x] Auth tokens (Jira, GitHub, Slack) with show/hide toggle
+- [x] Persist configuration in localStorage
 - [ ] Dark mode toggle (already supported in CSS)
 - [ ] Responsive design verification
 - [ ] Error boundary implementation
@@ -966,6 +978,163 @@ New styles added for Phase 3 components:
 5. **Progressive disclosure** - Blockers and decisions only shown when present
 
 6. **Loading feedback** - Spinner and disabled states during analysis
+
+### Phase 4: Plan Execution (Completed)
+
+Phase 4 added execution of the delegation plan — running Jira, GitHub, and Slack sub-operations on the venue and displaying live progress to the user.
+
+#### Key Technical Detail: Asset Invocation by Hex ID
+
+The venue only accepts `adapter:operation` strings (e.g. `langchain:openai`) or **content-hash hex IDs** in its `POST /api/v1/invoke/` endpoint. Calling `venue.run('pm:executeJiraActions', ...)` fails because `pm` is not a registered adapter.
+
+**Solution:** After `ensureAssets()` deploys all assets, `buildAssetIdMap()` calls `venue.getAssets()` and builds a `name → hexId` map for every asset whose name starts with `pm:`. `executeActions()` looks up hex IDs from this map before invoking.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/components/ExecutionView.tsx` | Step-by-step execution progress, results, and navigation |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/types.ts` | Added `ExecutionStepStatus`, `ExecutionStep`, `ExecutionState` types |
+| `src/lib/venue.ts` | Added `assetIdMap`, `buildAssetIdMap()`, `executeActions()` |
+| `src/components/DelegationPlan.tsx` | Added `onExecute`, `settings`, `isExecuting` props; Execute Plan button and integration warning |
+| `src/components/index.ts` | Exported `ExecutionView` |
+| `src/index.css` | Added execution view, step row, and results styles |
+| `src/App.tsx` | Added `executionState`, `showExecution`, `lastNotes`, `handleExecute`, `handleReset`; conditional rendering of `ExecutionView` / `DelegationPlan` |
+
+#### executeActions() Method
+
+```typescript
+async executeActions(
+  notes: string,
+  analysisResult: AnalysisResult,
+  settings: PMSettings,
+  onStepUpdate: (id: ActionTarget, status: ExecutionStepStatus, result?: unknown, error?: string) => void
+): Promise<void>
+```
+
+Runs three sub-operations sequentially. For each target (jira / github / slack):
+- If the corresponding server URL is configured **and** the analysis contains actions for that target → invokes the venue operation by hex ID, calls `onStepUpdate` with `running` then `success` or `error`
+- Otherwise → calls `onStepUpdate` with `skipped`
+
+#### ExecutionView Component
+
+```typescript
+interface ExecutionViewProps {
+  state: ExecutionState;
+  onBack: () => void;  // Returns to delegation plan
+  onReset: () => void; // Clears all state for new analysis
+}
+```
+
+**Structure:**
+- Header title changes: "Executing Plan…" → "Execution Complete" / "Execution Failed"
+- Step list: one row per step with status icon, label, and badge
+- Results section (on completion): `<details>` per step with formatted JSON or error text
+- Footer: "Back to Plan" always visible; "Start New Analysis" shown when done
+
+#### Key Design Decisions
+
+1. **Sequential execution** — Steps run one after another so earlier failures don't block later ones, and progress is visible to the user as each step completes
+
+2. **Skip vs. error** — Steps are `skipped` when no server is configured or no actions target that system; `error` only when the venue invocation itself fails
+
+3. **View swap** — The execution view replaces the delegation plan section while running, avoiding layout shifts; "Back to Plan" restores the delegation plan without losing analysis results
+
+4. **Integration warning** — When no integration servers are configured, the Execute Plan button is disabled and an inline warning directs the user to ⚙ Settings
+
+---
+
+### Phase 5: Configuration & Polish (In Progress)
+
+Phase 5 (partial) added a settings panel and localStorage persistence so users can configure MCP server endpoints and credentials before executing workflows.
+
+#### Bug Fixes (covialib)
+
+Two bugs in `covialib/src/Venue.ts` were fixed as a prerequisite:
+
+1. **`venue.run()` did not poll for job completion** — The `/api/v1/invoke/` endpoint returns immediately with a `PENDING` job. `run()` now polls `/api/v1/jobs/{id}` at 500 ms intervals until the job reaches a terminal status (`COMPLETE`, `FAILED`, `CANCELLED`, or `REJECTED`), then returns `job.output`.
+
+2. **Failed jobs returned `undefined` instead of an error** — When a job reaches `FAILED` status, `run()` now throws a `CoviaError` containing the job's error message, surfacing real failure reasons (e.g. missing OpenAI API key) to the frontend.
+
+#### OpenAI API Key — Frontend Pass-through
+
+When the venue server does not have `OPENAI_API_KEY` set in its environment, the key can be passed directly from the frontend via the `VITE_OPENAI_API_KEY` environment variable in `.env.local`. The `PMVenueClient.analyzeMeeting()` method reads `import.meta.env.VITE_OPENAI_API_KEY` and includes it as `apiKey` in the `langchain:openai` invocation.
+
+> **Note:** This is a development convenience only. For production, set `OPENAI_API_KEY` on the venue server process.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useSettings.ts` | Loads/saves `PMSettings` to `localStorage` key `covia-pm-settings` |
+| `src/components/SettingsPanel.tsx` | Slide-out drawer with Jira / GitHub / Slack configuration sections |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/types.ts` | Added `PMSettings` interface |
+| `src/components/index.ts` | Exported `SettingsPanel` |
+| `src/index.css` | Added drawer, backdrop, section heading, and token field styles |
+| `src/App.tsx` | Added `useSettings` hook, `isSettingsOpen` state, ⚙ header button, and `<SettingsPanel>` render |
+
+#### PMSettings Type
+
+```typescript
+export interface PMSettings {
+  jiraServer: string;
+  jiraProjectKey: string;
+  jiraToken: string;
+  githubServer: string;
+  githubRepo: string;
+  githubToken: string;
+  slackServer: string;
+  slackChannel: string;
+  slackToken: string;
+}
+```
+
+#### useSettings Hook
+
+```typescript
+// src/hooks/useSettings.ts
+export function useSettings(): { settings: PMSettings; saveSettings: (s: PMSettings) => void }
+```
+
+- Reads from `localStorage` key `covia-pm-settings` on mount
+- `saveSettings()` serialises to JSON and persists immediately
+- Merges with `DEFAULT_SETTINGS` so new fields added in future are always present
+
+#### SettingsPanel Component
+
+```typescript
+interface SettingsPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  settings: PMSettings;
+  onSave: (settings: PMSettings) => void;
+}
+```
+
+**Structure:**
+- Fixed-position drawer (right side), 420 px wide, slides in via CSS `transform` transition
+- Semi-transparent backdrop — clicking it closes the drawer
+- Three sections: **Jira**, **GitHub**, **Slack** — each with server URL, project/repo/channel, and auth token
+- Token fields use `type="password"` with an inline show/hide toggle button
+- **Save Configuration** commits to `localStorage` and closes; **Cancel** discards changes
+
+#### Key Design Decisions
+
+1. **Draft state** — `SettingsPanel` keeps a local `draft` copy of settings while open. Changes are only committed to `localStorage` on **Save**, not on every keystroke.
+
+2. **Token security** — Tokens are stored in `localStorage` for development convenience. For production deployments the venue server should hold credentials server-side; token fields should be cleared or omitted.
+
+3. **Settings passed to workflow** — The `settings` object from `useSettings` is available in `App.tsx` and will be spread into `executeFullWorkflow()` as `WorkflowConfig` fields when Phase 4 execution is implemented.
 
 ---
 

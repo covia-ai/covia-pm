@@ -22,3 +22,31 @@ export interface AnalysisResult {
 }
 
 export type AnalysisStatus = 'idle' | 'analyzing' | 'success' | 'error';
+
+export type ExecutionStepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
+
+export interface ExecutionStep {
+  id: ActionTarget;
+  label: string;
+  icon: string;
+  status: ExecutionStepStatus;
+  result?: unknown;
+  error?: string;
+}
+
+export interface ExecutionState {
+  status: 'idle' | 'running' | 'complete' | 'error';
+  steps: ExecutionStep[];
+}
+
+export interface PMSettings {
+  jiraServer: string;
+  jiraProjectKey: string;
+  jiraToken: string;
+  githubServer: string;
+  githubRepo: string;
+  githubToken: string;
+  slackServer: string;
+  slackChannel: string;
+  slackToken: string;
+}

@@ -1,6 +1,6 @@
 import { Grid, Venue } from '@covia-ai/covialib';
 import pmAssets from '../assets/operations';
-import type { AnalysisResult, MeetingType } from '../types';
+import type { AnalysisResult, MeetingType, PMSettings, ExecutionStep, ExecutionStepStatus } from '../types';
 
 export type { AnalysisResult };
 
@@ -16,6 +16,7 @@ export interface WorkflowConfig {
 export class PMVenueClient {
   private venue: Venue | null = null;
   private assetsDeployed = false;
+  private assetIdMap = new Map<string, string>();
 
   get isConnected(): boolean {
     return this.venue !== null;
@@ -34,6 +35,7 @@ export class PMVenueClient {
   async disconnect(): Promise<void> {
     this.venue = null;
     this.assetsDeployed = false;
+    this.assetIdMap.clear();
   }
 
   private async ensureAssets(): Promise<void> {
@@ -65,6 +67,23 @@ export class PMVenueClient {
     }
 
     this.assetsDeployed = true;
+    await this.buildAssetIdMap();
+  }
+
+  private async buildAssetIdMap(): Promise<void> {
+    if (!this.venue) return;
+    try {
+      const assets = await this.venue.getAssets();
+      for (const asset of assets) {
+        const name = asset.metadata?.name;
+        if (name?.startsWith('pm:')) {
+          this.assetIdMap.set(name, asset.id);
+        }
+      }
+      console.log('Asset ID map built:', Object.fromEntries(this.assetIdMap));
+    } catch (e) {
+      console.warn('Failed to build asset ID map:', e);
+    }
   }
 
   async analyzeMeeting(notes: string, meetingType: MeetingType = 'ad_hoc'): Promise<AnalysisResult> {
@@ -109,10 +128,12 @@ Map actions to targets:
 Respond with JSON only.`;
 
     // Call langchain:openai directly since venue requires asset hex IDs or adapter:operation format
+    const openAiApiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
     const result = await this.venue.run('langchain:openai', {
       prompt: notes,
       systemPrompt,
-      model: 'gpt-4-turbo'
+      model: 'gpt-4-turbo',
+      ...(openAiApiKey ? { apiKey: openAiApiKey } : {})
     });
 
     // Log the result for debugging
@@ -168,6 +189,79 @@ Respond with JSON only.`;
       notes,
       ...config
     });
+  }
+
+  async executeActions(
+    notes: string,
+    analysisResult: AnalysisResult,
+    settings: PMSettings,
+    onStepUpdate: (id: ExecutionStep['id'], status: ExecutionStepStatus, result?: unknown, error?: string) => void
+  ): Promise<void> {
+    if (!this.venue) throw new Error('Not connected to venue');
+
+    const jiraItems = analysisResult.actionItems.filter(i => i.target === 'jira');
+    const githubItems = analysisResult.actionItems.filter(i => i.target === 'github');
+    const slackItems = analysisResult.actionItems.filter(i => i.target === 'slack');
+
+    // Jira
+    const jiraId = this.assetIdMap.get('pm:executeJiraActions');
+    if (settings.jiraServer && jiraItems.length > 0 && jiraId) {
+      onStepUpdate('jira', 'running');
+      try {
+        const result = await this.venue.run(jiraId, {
+          actions: jiraItems,
+          jiraServer: settings.jiraServer,
+          projectKey: settings.jiraProjectKey,
+          token: settings.jiraToken,
+          notes,
+        });
+        onStepUpdate('jira', 'success', result);
+      } catch (e) {
+        onStepUpdate('jira', 'error', undefined, e instanceof Error ? e.message : String(e));
+      }
+    } else {
+      onStepUpdate('jira', 'skipped');
+    }
+
+    // GitHub
+    const githubId = this.assetIdMap.get('pm:executeGithubActions');
+    if (settings.githubServer && githubItems.length > 0 && githubId) {
+      onStepUpdate('github', 'running');
+      try {
+        const result = await this.venue.run(githubId, {
+          actions: githubItems,
+          githubServer: settings.githubServer,
+          repo: settings.githubRepo,
+          token: settings.githubToken,
+          notes,
+        });
+        onStepUpdate('github', 'success', result);
+      } catch (e) {
+        onStepUpdate('github', 'error', undefined, e instanceof Error ? e.message : String(e));
+      }
+    } else {
+      onStepUpdate('github', 'skipped');
+    }
+
+    // Slack
+    const slackId = this.assetIdMap.get('pm:sendNotifications');
+    if (settings.slackServer && slackItems.length > 0 && slackId) {
+      onStepUpdate('slack', 'running');
+      try {
+        const result = await this.venue.run(slackId, {
+          actions: slackItems,
+          slackServer: settings.slackServer,
+          channel: settings.slackChannel,
+          token: settings.slackToken,
+          notes,
+        });
+        onStepUpdate('slack', 'success', result);
+      } catch (e) {
+        onStepUpdate('slack', 'error', undefined, e instanceof Error ? e.message : String(e));
+      }
+    } else {
+      onStepUpdate('slack', 'skipped');
+    }
   }
 
   async getDeployedAssets(): Promise<string[]> {

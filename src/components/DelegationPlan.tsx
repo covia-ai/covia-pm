@@ -1,8 +1,11 @@
-import type { AnalysisResult, ActionItem, ActionTarget, Priority } from '../types';
+import type { AnalysisResult, ActionItem, ActionTarget, Priority, PMSettings } from '../types';
 
 interface DelegationPlanProps {
   result: AnalysisResult | null;
   error: Error | null;
+  onExecute: () => void;
+  settings: PMSettings;
+  isExecuting: boolean;
 }
 
 const TARGET_CONFIG: Record<ActionTarget, { label: string; icon: string; color: string }> = {
@@ -76,7 +79,7 @@ function TargetGroup({ target, items }: { target: ActionTarget; items: ActionIte
   );
 }
 
-export function DelegationPlan({ result, error }: DelegationPlanProps) {
+export function DelegationPlan({ result, error, onExecute, settings, isExecuting }: DelegationPlanProps) {
   if (error) {
     return (
       <section className="delegation-plan-section">
@@ -99,6 +102,7 @@ export function DelegationPlan({ result, error }: DelegationPlanProps) {
   const hasActions = result.actionItems.length > 0;
   const hasBlockers = result.blockers.length > 0;
   const hasDecisions = result.decisions.length > 0;
+  const hasAnyIntegration = !!(settings.jiraServer || settings.githubServer || settings.slackServer);
 
   return (
     <section className="delegation-plan-section">
@@ -147,6 +151,25 @@ export function DelegationPlan({ result, error }: DelegationPlanProps) {
             )}
           </div>
         )}
+
+        <div className="execute-plan-footer">
+          {!hasAnyIntegration && (
+            <p className="execute-warning">
+              ⚠ Configure integrations in ⚙ Settings before executing
+            </p>
+          )}
+          <button
+            className="button-primary execute-button"
+            onClick={onExecute}
+            disabled={!hasAnyIntegration || isExecuting}
+          >
+            {isExecuting ? (
+              <><span className="spinner" /> Executing…</>
+            ) : (
+              'Execute Plan'
+            )}
+          </button>
+        </div>
       </div>
     </section>
   );

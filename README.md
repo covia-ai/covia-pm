@@ -198,29 +198,52 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 4. Select meeting type and click "Analyze Meeting"
 5. View extracted action items in the delegation plan
 
-**Note:** Requires a running venue with OpenAI API key configured for the `langchain:openai` adapter.
+**Note:** Requires a running venue with `OPENAI_API_KEY` set in the venue server environment, **or** set `VITE_OPENAI_API_KEY` in `.env.local` to pass the key directly from the frontend (development use only).
 
 ---
 
-### Phase 4: Plan Execution - PLANNED
+### Phase 4: Plan Execution - COMPLETED
 
-**Will include:**
-- Execute button to run `pm:fullWorkflow`
-- Progress tracking for each action
-- Per-action status (pending/running/success/error)
-- Results display with links to created issues/PRs
+**What works:**
+- Execute Plan button on the delegation plan (disabled with warning if no integrations configured)
+- Step-by-step execution view that replaces the delegation plan while running
+- Per-step status: ⬜ pending · ⏳ running · ✅ done · ❌ failed · ➖ skipped
+- Jira, GitHub, and Slack actions executed separately via their hex-ID asset references
+- Collapsible per-step result display (formatted JSON) on completion
+- "Back to Plan" and "Start New Analysis" buttons
+
+**Components:**
+
+| Component | Purpose |
+|-----------|---------|
+| `ExecutionView` | Step-by-step execution progress and results |
+
+**Files:**
+- `src/components/ExecutionView.tsx` — Execution progress view
+- `src/lib/venue.ts` — `executeActions()` method, `buildAssetIdMap()` for hex ID resolution
+
+**Try it:**
+1. Analyse meeting notes to get a delegation plan
+2. Open ⚙ Settings and configure at least one integration server URL
+3. Click **Execute Plan** — the view transitions to step-by-step progress
+4. Steps without a configured server show ➖ SKIPPED
+
+**Note:** Asset hex IDs are resolved automatically after connect — `pm:executeJiraActions` etc. are looked up via `venue.getAssets()` and invoked by their content-hash IDs, as the venue does not accept arbitrary name-based invocation outside the orchestrator adapter.
 
 ---
 
-### Phase 5: Configuration & Polish - PLANNED
+### Phase 5: Configuration & Polish - COMPLETED
 
-**Will include:**
-- Settings panel for MCP server endpoints
-- Jira project key configuration
-- GitHub repo configuration
-- Slack channel selection
+**Completed:**
+- ✅ Settings panel (slide-out drawer) for MCP server endpoints
+- ✅ Jira project key, GitHub repo, Slack channel configuration
+- ✅ Auth token fields (Jira, GitHub, Slack) with show/hide toggle
+- ✅ Configuration persistence in localStorage (`covia-pm-settings`)
+
+**Remaining:**
 - Dark mode toggle
-- Configuration persistence in localStorage
+- Responsive design verification
+- Error boundary implementation
 
 ---
 
@@ -239,10 +262,11 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `VITE_VENUE_URL` | Default venue URL | `http://localhost:8080` |
+| `VITE_OPENAI_API_KEY` | OpenAI API key passed to the venue's LangChain adapter. Dev use only — prefer setting `OPENAI_API_KEY` on the venue server for production. | — |
 
-### MCP Server Configuration (Phase 4+)
+### MCP Server Configuration
 
-When Phase 4 is complete, you'll configure MCP servers for external integrations:
+Configure MCP servers via the ⚙ Settings panel. Values are persisted in `localStorage`:
 
 ```typescript
 {
@@ -251,7 +275,10 @@ When Phase 4 is complete, you'll configure MCP servers for external integrations
   slackServer: 'https://slack-mcp.example.com/mcp',
   jiraProjectKey: 'PROJ',
   githubRepo: 'org/repo',
-  slackChannel: '#updates'
+  slackChannel: '#updates',
+  jiraToken: '...',
+  githubToken: '...',
+  slackToken: '...'
 }
 ```
 
@@ -312,13 +339,22 @@ covia-pm/
 │   │       ├── pm-sendNotifications.json
 │   │       └── pm-fullWorkflow.json
 │   ├── hooks/
-│   │   └── useVenue.ts           # React hook for venue connection
+│   │   ├── useVenue.ts           # React hook for venue connection
+│   │   └── useSettings.ts        # React hook for settings persistence
 │   ├── lib/
 │   │   └── venue.ts              # PMVenueClient class
+│   ├── components/
+│   │   ├── index.ts              # Barrel exports
+│   │   ├── MeetingInput.tsx      # Meeting notes form
+│   │   ├── DelegationPlan.tsx    # Action items display + Execute Plan button
+│   │   ├── ExecutionView.tsx     # Step-by-step execution progress
+│   │   └── SettingsPanel.tsx     # Configuration slide-out drawer
 │   ├── App.tsx                   # Main application component
 │   ├── main.tsx                  # Entry point
+│   ├── types.ts                  # Shared TypeScript types
 │   └── index.css                 # Semantic CSS styles
 ├── .env.example                  # Environment template
+├── .env.local                    # Local overrides — not committed
 ├── CLAUDE.md                     # Development guide
 ├── DESIGN.md                     # Architecture documentation
 └── package.json

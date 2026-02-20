@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react'
 import './index.css'
 import { useVenue } from './hooks/useVenue'
 import type { ConnectionStatus } from './hooks/useVenue'
-import { MeetingInput, DelegationPlan } from './components'
-import type { AnalysisResult, MeetingType, AnalysisStatus } from './types'
+import { useSettings } from './hooks/useSettings'
+import { MeetingInput, DelegationPlan, SettingsPanel, ExecutionView } from './components'
+import type { AnalysisResult, MeetingType, AnalysisStatus, ExecutionState, ExecutionStep } from './types'
 
 function ConnectionIndicator({ status, venueId, error }: {
   status: ConnectionStatus;
@@ -68,15 +69,27 @@ function VenueConnect({
   );
 }
 
+const INITIAL_STEPS: ExecutionStep[] = [
+  { id: 'jira',   label: 'Creating Jira Issues',        icon: 'J', status: 'pending' },
+  { id: 'github', label: 'Executing GitHub Actions',    icon: 'G', status: 'pending' },
+  { id: 'slack',  label: 'Sending Slack Notifications', icon: 'S', status: 'pending' },
+];
+
 function App() {
   const { client, status, error, venueId, connect, disconnect } = useVenue();
+  const { settings, saveSettings } = useSettings();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<Error | null>(null);
+  const [lastNotes, setLastNotes] = useState('');
+  const [executionState, setExecutionState] = useState<ExecutionState>({ status: 'idle', steps: [] });
+  const [showExecution, setShowExecution] = useState(false);
 
   const handleAnalyze = useCallback(async (notes: string, meetingType: MeetingType) => {
     setAnalysisStatus('analyzing');
     setAnalysisError(null);
+    setLastNotes(notes);
 
     try {
       const result = await client.analyzeMeeting(notes, meetingType);
@@ -88,8 +101,48 @@ function App() {
     }
   }, [client]);
 
+  const handleExecute = useCallback(async () => {
+    if (!analysisResult) return;
+
+    const initialSteps = INITIAL_STEPS.map(s => ({ ...s }));
+    setExecutionState({ status: 'running', steps: initialSteps });
+    setShowExecution(true);
+
+    let hasError = false;
+
+    try {
+      await client.executeActions(lastNotes, analysisResult, settings, (id, stepStatus, result, errorMsg) => {
+        setExecutionState(prev => {
+          const steps = prev.steps.map(s =>
+            s.id === id ? { ...s, status: stepStatus, result, error: errorMsg } : s
+          );
+          if (stepStatus === 'error') hasError = true;
+          return { ...prev, steps };
+        });
+      });
+    } catch (e) {
+      hasError = true;
+      console.error('Execution failed:', e);
+    }
+
+    setExecutionState(prev => ({
+      ...prev,
+      status: hasError ? 'error' : 'complete',
+    }));
+  }, [client, analysisResult, lastNotes, settings]);
+
+  const handleReset = useCallback(() => {
+    setAnalysisStatus('idle');
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setLastNotes('');
+    setExecutionState({ status: 'idle', steps: [] });
+    setShowExecution(false);
+  }, []);
+
   const isConnected = status === 'connected';
   const isAnalyzing = analysisStatus === 'analyzing';
+  const isExecuting = executionState.status === 'running';
 
   return (
     <div className="page">
@@ -109,6 +162,14 @@ function App() {
               <a href="#about">About</a>
               <a href="https://docs.covia.ai" target="_blank" rel="noopener">Docs</a>
             </nav>
+            <button
+              className="settings-button"
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="Open configuration"
+              title="Configuration"
+            >
+              ⚙
+            </button>
           </div>
         </div>
       </header>
@@ -135,10 +196,21 @@ function App() {
           isConnected={isConnected}
         />
 
-        <DelegationPlan
-          result={analysisResult}
-          error={analysisError}
-        />
+        {showExecution ? (
+          <ExecutionView
+            state={executionState}
+            onBack={() => setShowExecution(false)}
+            onReset={handleReset}
+          />
+        ) : (
+          <DelegationPlan
+            result={analysisResult}
+            error={analysisError}
+            onExecute={handleExecute}
+            settings={settings}
+            isExecuting={isExecuting}
+          />
+        )}
 
         <section className="features" id="features">
           <div className="container">
@@ -205,6 +277,13 @@ function App() {
           </nav>
         </div>
       </footer>
+
+      <SettingsPanel
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSave={saveSettings}
+      />
     </div>
   )
 }
