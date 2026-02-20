@@ -1161,3 +1161,200 @@ Two breakpoints were added to `index.css`:
 3. **Multi-venue** - Deploy to multiple venues for redundancy
 4. **Custom adapters** - Register venue-side adapters for complex logic
 5. **Policy enforcement** - Add approval workflows before execution
+
+---
+
+## Integration Roadmap
+
+The platform's MCP adapter architecture makes each new integration a JSON asset definition plus a compatible MCP server. The marginal cost of adding a tool is low once the pattern is established. Integrations are grouped into three delivery waves ordered by breadth of coverage and availability of MCP servers.
+
+### Current Integrations (Phases 1–4)
+
+| Integration | Operations |
+|-------------|------------|
+| **Jira** | Create issues from action items |
+| **GitHub** | Create branches, open PRs |
+| **Slack** | Send channel notifications |
+
+---
+
+### Wave 1 — High Coverage (Phase 7)
+
+High-impact tools with broad adoption and MCP servers that are either already available or straightforward to build. Targets the majority of engineering teams regardless of stack.
+
+#### Project Management
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Linear** | `pm:executeLinearActions` | Create issues, set priority, assign to cycles |
+| **Azure DevOps / Boards** | `pm:executeAzureDevOpsActions` | Create work items, link to PRs |
+| **Confluence** | `pm:writeConfluencePages` | Auto-document decisions and action items |
+
+#### Communication
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Microsoft Teams** | `pm:sendTeamsNotifications` | Post to channels, create meeting follow-up cards |
+| **Email** | `pm:sendEmailNotifications` | Universal fallback via SMTP / SendGrid / Resend |
+
+#### Incident Management
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **PagerDuty** | `pm:createPagerDutyIncidents` | Escalate blockers to incidents, set severity |
+
+#### Observability
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Sentry** | `pm:linkSentryIssues` | Create issues from error spikes, link to action items |
+
+#### Version Control
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **GitLab** | `pm:executeGitLabActions` | Create branches, open MRs, trigger pipelines |
+
+#### Calendar
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Google Calendar** | `pm:scheduleFollowUps` | Create follow-up events from action items |
+
+#### Meeting Intelligence
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Fireflies.ai / Otter.ai** | `pm:fetchTranscript` | Pull transcript directly — removes manual paste step |
+
+**Wave 1 goal:** Cover the majority of engineering teams regardless of whether they use GitHub or GitLab, Slack or Teams, Jira or Linear.
+
+---
+
+### Wave 2 — Enterprise Completeness (Phase 8)
+
+Fills gaps for enterprise organisations: Microsoft-stack teams, security and compliance workflows, DevOps pipelines, and broader observability.
+
+#### Project Management
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Asana** | `pm:executeAsanaActions` | Create tasks, assign to projects |
+| **Shortcut** | `pm:executeShortcutActions` | Create stories, set epics |
+
+#### Version Control & Code
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Bitbucket** | `pm:executeBitbucketActions` | Create branches, open PRs (Atlassian stack) |
+| **Azure Repos** | `pm:executeAzureReposActions` | PRs and branch policies |
+
+#### CI/CD
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **GitHub Actions** | `pm:triggerGitHubWorkflows` | Trigger workflow runs, report status |
+| **GitLab CI** | `pm:triggerGitLabPipelines` | Trigger pipelines, link to action items |
+| **Jenkins** | `pm:triggerJenkinsBuilds` | Trigger and monitor build jobs |
+| **CircleCI** | `pm:triggerCircleCIBuilds` | Pipeline triggers |
+
+#### Observability
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Datadog** | `pm:linkDatadogMonitors` | Attach monitors to action items, create dashboards |
+| **Grafana** | `pm:embedGrafanaDashboards` | Snapshot dashboards into meeting summaries |
+
+#### Code Quality & Security
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Snyk** | `pm:createSnykIssues` | Jira/Linear tickets from vulnerability scans |
+| **SonarQube** | `pm:linkSonarQubeGates` | Quality gate failures → action items |
+| **GitHub Advanced Security** | `pm:linkSecurityAlerts` | Security alerts → tracked issues |
+
+#### Communication
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Google Chat** | `pm:sendGoogleChatNotifications` | Google Workspace orgs |
+| **Discord** | `pm:sendDiscordNotifications` | Developer communities, open source projects |
+
+#### Scheduling
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Outlook / Microsoft 365** | `pm:scheduleOutlookEvents` | Enterprise calendar follow-ups |
+
+**Wave 2 goal:** No engineering team is excluded — any combination of Microsoft, Atlassian, Google, or open-source stack is fully supported.
+
+---
+
+### Wave 3 — Breadth & Customer Lifecycle (Phase 9)
+
+Extends the platform beyond the engineering team into the full product lifecycle: customer feedback, support queues, sales pipeline, infrastructure, and time tracking.
+
+#### Customer Feedback & Support
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Zendesk** | `pm:linkZendeskTickets` | Customer-reported bugs → engineering backlog |
+| **Intercom** | `pm:linkIntercomConversations` | Support threads → tracked issues |
+| **Canny** | `pm:syncCannyRequests` | Public feature votes → prioritised backlog items |
+| **HubSpot** | `pm:linkHubSpotDeals` | Feature requests from sales context |
+| **Salesforce** | `pm:linkSalesforceOpportunities` | Enterprise deal-driven feature tracking |
+
+#### Infrastructure
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **ArgoCD** | `pm:trackArgoCDDeployments` | Link action items to deployment status |
+| **Terraform Cloud** | `pm:trackTerraformRuns` | Infrastructure changes → tracked items |
+
+#### Documentation
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Notion** | `pm:writeNotionPages` | Docs + lightweight project databases |
+| **Google Docs** | `pm:writeGoogleDocs` | Meeting minutes auto-written from analysis |
+
+#### Video & Async
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Zoom** | `pm:fetchZoomTranscripts` | Pull recording transcripts automatically |
+| **Loom** | `pm:createLoomVideos` | Async video updates for action item summaries |
+
+#### Time Tracking
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **Harvest / Toggl** | `pm:logTimeEstimates` | Log effort estimates against created issues |
+| **Tempo** | `pm:syncTempoWorklogs` | Jira-native time tracking |
+
+#### Incident Management
+
+| Tool | Asset | Operations |
+|------|-------|------------|
+| **OpsGenie** | `pm:createOpsGenieAlerts` | Atlassian-stack incident routing |
+| **FireHydrant** | `pm:openFireHydrantIncidents` | Modern incident management |
+
+**Wave 3 goal:** Connect the full product lifecycle — from customer feedback and sales through to infrastructure and post-incident review.
+
+---
+
+### Platform Capabilities Roadmap
+
+Beyond individual integrations, several cross-cutting platform capabilities are needed to support the growing integration surface:
+
+| Capability | Phase | Description |
+|------------|-------|-------------|
+| **Integration registry UI** | 7 | Settings panel lists all available integrations; user enables/disables per venue |
+| **MCP server health checks** | 7 | Ping configured servers on connect; surface failures before execution |
+| **Per-step approval gates** | 8 | Optional human confirmation before destructive actions (e.g. creating incidents) |
+| **Execution history log** | 8 | Persistent log of past executions with results, linked to meeting notes |
+| **Asset versioning** | 8 | Embed semver in asset metadata; re-deploy on version mismatch |
+| **Webhook triggers** | 9 | Inbound webhooks from Sentry/Datadog/GitHub → auto-trigger analysis |
+| **Multi-venue routing** | 9 | Route different action types to different venues (org boundaries) |
+| **Approval policy engine** | 9 | Rules governing which actions require human sign-off |
+| **Audit trail viewer** | 9 | Browse immutable Grid job log within the PM UI |
