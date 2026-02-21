@@ -1,465 +1,238 @@
 # Covia PM
 
-Federated AI Project Management frontend for the [Covia Grid](https://www.covia.ai). Coordinates AI agents across 12 execution integrations (Jira, Linear, Azure DevOps, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Google Calendar) and 9 meeting intelligence tools (Granola, Fathom, Fireflies, Otter, tl;dv, Avoma, Read.ai, Zoom AI, Teams Meeting), with shared execution state, immutable audit trails, and runtime policy enforcement.
+Federated AI project management frontend for the [Covia Grid](https://www.covia.ai).
 
-## Overview
+Paste or fetch meeting notes → LLM extracts action items → execute across 12 integrations in one click.
 
-Covia PM is a **self-deploying** React frontend that:
-- Connects to any Covia Grid venue
-- Automatically deploys 27 PM operations as self-hosted venue assets
-- Fetches transcripts from 9 meeting intelligence tools (Granola, Fathom, Fireflies, etc.)
-- Uses LLM-powered analysis to extract and route action items
-- Delegates actions to 12 integration targets via MCP (Jira, Linear, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Calendar, Azure DevOps)
-- Data-driven accordion settings panel — add new integrations by editing one config file
+---
+
+## What It Does
+
+Covia PM is a **self-deploying** React app. When you connect to any Covia venue it automatically registers 24 PM operation definitions as venue assets, then uses them to:
+
+- **Analyse** meeting notes with GPT-4 (or any LLM the venue is configured for) to extract action items, blockers, and decisions
+- **Fetch transcripts** directly from 9 meeting intelligence tools so you never have to copy-paste
+- **Execute** the delegation plan across whichever integrations are configured — each target runs independently so a Jira failure doesn't block GitHub
+
+### Execution integrations (12)
+
+| Category | Tools |
+|----------|-------|
+| Issue trackers | Jira, Linear, Azure DevOps |
+| Version control | GitHub, GitLab |
+| Communication | Slack, Microsoft Teams, Email |
+| Incident management | PagerDuty |
+| Observability | Sentry |
+| Documentation | Confluence |
+| Calendar | Google Calendar |
+
+### Meeting intelligence sources (9)
+
+Granola · Fathom · Fireflies · Otter · tl;dv · Avoma · Read.ai · Zoom AI Companion · Microsoft Teams Meeting
+
+---
 
 ## Prerequisites
 
-- **Node.js** 20.19+ or 22.12+
-- **pnpm** (recommended) or npm
-- **Covia Venue** running locally or remotely (see [covia-repo](https://github.com/covia-ai/covia-repo))
-- **covialib** cloned as sibling directory (for local development)
+- Node.js 20.19+ or 22.12+
+- pnpm 10+
+- **covialib** built as a sibling directory (`../covialib`)
+- A running Covia venue (local or remote)
 
-### Directory Structure
+### Directory layout
 
 ```
 covia/
-├── covialib/          # TypeScript Grid client (required)
-├── covia-pm/          # This project
-├── covia-repo/        # Venue server (optional, for local development)
-└── ...
+├── covialib/    ← must exist and be built
+├── covia-pm/    ← this project
+└── covia-repo/  ← optional: venue server for local development
 ```
+
+---
 
 ## Quick Start
 
-### 1. Install Dependencies
-
 ```bash
-# Clone covialib if not already present
-cd /path/to/covia
-git clone https://github.com/covia-ai/covialib.git
-cd covialib && pnpm install && pnpm build
+# 1. Build covialib (required dependency, linked locally)
+cd ../covialib && pnpm install && pnpm build
 
-# Install covia-pm dependencies
+# 2. Install covia-pm
 cd ../covia-pm
 pnpm install
-```
 
-### 2. Configure Environment
-
-```bash
-# Copy environment template
+# 3. Configure environment
 cp .env.example .env
+# Edit .env — set VITE_VENUE_URL to your venue address
 
-# Edit .env with your venue URL
-# VITE_VENUE_URL=http://localhost:8080
-```
-
-### 3. Run Development Server
-
-```bash
+# 4. Start dev server
 pnpm dev
+# → http://localhost:5173
 ```
-
-Open http://localhost:5173 in your browser.
-
-### 4. Connect to Venue
-
-1. Enter your venue URL in the connection form (or use the default from `.env`)
-2. Click **Connect**
-3. The status badge will show "Connected" with the venue ID
-4. PM assets are automatically deployed on first connection
-
-## Running the UI
-
-### Development Mode
-
-```bash
-pnpm dev          # Start dev server with HMR
-```
-
-### Production Build
-
-```bash
-pnpm build        # Type-check and build for production
-pnpm preview      # Preview production build locally
-```
-
-### Other Commands
-
-```bash
-pnpm lint         # Run ESLint
-pnpm build        # Production build to dist/
-```
-
-## Connecting to a Venue
-
-### Local Venue
-
-1. Start the venue server (from covia-repo):
-   ```bash
-   cd ../covia-repo
-   ./mvnw quarkus:dev
-   ```
-
-2. The venue will be available at `http://localhost:8080`
-
-3. In Covia PM, enter `http://localhost:8080` and click Connect
-
-### Remote Venue
-
-Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
-
-### Connection States
-
-| Status | Badge | Description |
-|--------|-------|-------------|
-| Disconnected | Gray | Not connected to any venue |
-| Connecting | Yellow | Connection in progress |
-| Connected | Green | Connected, assets deployed |
-| Error | Red | Connection failed (see error message) |
-
-## Current Status
-
-All core phases are complete and working end to end:
-
-| # | Phase | Status |
-|---|-------|--------|
-| 1 | Venue connection & asset deployment | ✅ Complete |
-| 2 | Asset definitions (PM operation JSON) | ✅ Complete |
-| 3 | Meeting analysis UI | ✅ Complete |
-| 4 | Plan execution & step tracking | ✅ Complete |
-| 5 | Settings, dark mode, responsive layout | ✅ Complete |
-| 6 | Wave 1 — 12 execution targets + 9 transcript sources | ✅ Complete |
-| 7 | Testing & documentation | Planned |
-
-**What works today:** connect to any Covia venue → paste or fetch meeting notes → analyse with GPT-4 → review the delegation plan → execute actions against whichever integrations are configured.
 
 ---
 
-## Phase Status & Features
+## Running Against a Local Venue
 
-### Phase 1: Foundation - COMPLETED
+```bash
+# Start the venue server (from covia-repo)
+cd ../covia-repo
+./mvnw quarkus:dev
+# → http://localhost:8080
 
-**What works:**
-- Connect to any Covia Grid venue via URL
-- Connection status indicator in header
-- Automatic asset deployment on connect
-- Disconnect functionality
+# In .env:
+VITE_VENUE_URL=http://localhost:8080
+```
 
-**Files:**
-- `src/lib/venue.ts` - PMVenueClient wrapper around covialib
-- `src/hooks/useVenue.ts` - React hook for connection state
-- `src/assets/operations/pm-placeholder.json` - Test asset
+The venue must have an LLM configured. For development you can pass an OpenAI key directly from the frontend:
 
-**Try it:**
-1. Run `pnpm dev`
-2. Enter venue URL and click Connect
-3. Check browser console for asset deployment logs
+```bash
+# .env.local (not committed)
+VITE_OPENAI_API_KEY=sk-...
+```
+
+> **Note:** For production, set `OPENAI_API_KEY` in the venue server's environment instead.
 
 ---
 
-### Phase 2: Asset Definitions - COMPLETED
+## Using the App
 
-**What works:**
-- All PM operations defined as JSON assets
-- Assets auto-deploy to venue on connect
-- LLM system prompts configured for meeting analysis
+### 1. Connect
 
-**Assets deployed:**
+Enter your venue URL and click **Connect**. The header badge turns green and shows the venue ID. All 24 PM assets are deployed automatically on first connect — this is a no-op on subsequent connects.
 
-| Asset | Purpose |
+### 2. Configure integrations
+
+Click **⚙ Settings** to open the configuration drawer. Enter the MCP server URLs for the tools you want to use. Auth tokens are stored in `localStorage`. Only integrations with a server URL configured will appear in the execution plan.
+
+Each integration shows a live health indicator:
+
+| Badge | Meaning |
 |-------|---------|
-| `pm:placeholder` | Test asset for deployment verification |
-| `pm:analyzeMeeting` | LLM extraction of action items from meeting notes |
-| `pm:executeJiraActions` | Create Jira issues via MCP |
-| `pm:executeGithubActions` | GitHub branch/PR operations via MCP |
-| `pm:sendNotifications` | Slack notifications via MCP |
-| `pm:fullWorkflow` | End-to-end meeting processing |
+| `○ Not set` | No server URL configured |
+| `● Configured` | URL set, health unknown |
+| `◌ Checking…` | Ping in progress |
+| `● Online` | Server reachable |
+| `⚠ Unreachable` | Server did not respond |
 
-**Files:**
-- `src/assets/operations/*.json` - Asset definitions
-- `src/assets/operations/index.ts` - Asset registry
+### 3. Get meeting notes
 
-**Try it:**
-1. Connect to a venue
-2. Use venue API to list assets: `GET /api/v1/assets/`
-3. Verify PM assets are registered
+Either paste notes directly into the textarea, or use the **Fetch** row to pull a transcript from a connected meeting intelligence tool (enter the meeting ID or URL for the selected source).
 
----
+### 4. Analyse
 
-### Phase 3: Meeting Analysis UI - COMPLETED
+Select the meeting type (standup / planning / retro / ad hoc) and click **Analyse Meeting**. The delegation plan appears with action items grouped by target integration.
 
-**What works:**
-- Meeting notes input textarea with placeholder examples
-- Meeting type selector (standup/planning/retro/ad_hoc)
-- "Analyze" button with loading spinner
-- Delegation plan display showing extracted action items
-- Action items grouped by target (Jira/GitHub/Slack)
-- Priority badges (critical/high/medium/low)
-- Blockers and decisions lists
-- Error state handling
+### 5. Execute
 
-**Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| `MeetingInput` | Form with textarea and meeting type buttons |
-| `DelegationPlan` | Displays action items grouped by target |
-
-**Files:**
-- `src/components/MeetingInput.tsx` - Meeting input form
-- `src/components/DelegationPlan.tsx` - Results display
-- `src/types.ts` - Shared TypeScript types
-
-**Try it:**
-1. Run `pnpm dev`
-2. Connect to a venue
-3. Paste meeting notes in the textarea
-4. Select meeting type and click "Analyze Meeting"
-5. View extracted action items in the delegation plan
-
-**Note:** Requires a running venue with `OPENAI_API_KEY` set in the venue server environment, **or** set `VITE_OPENAI_API_KEY` in `.env.local` to pass the key directly from the frontend (development use only).
+Review the plan, then click **Execute Plan**. A step-by-step progress view replaces the plan. Steps for unconfigured integrations are automatically skipped. Expand each completed step to see the raw result.
 
 ---
 
-### Phase 4: Plan Execution - COMPLETED
+## Commands
 
-**What works:**
-- Execute Plan button on the delegation plan (disabled with warning if no integrations configured)
-- Step-by-step execution view that replaces the delegation plan while running
-- Per-step status: ⬜ pending · ⏳ running · ✅ done · ❌ failed · ➖ skipped
-- Jira, GitHub, and Slack actions executed separately via their hex-ID asset references
-- Collapsible per-step result display (formatted JSON) on completion
-- "Back to Plan" and "Start New Analysis" buttons
-
-**Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| `ExecutionView` | Step-by-step execution progress and results |
-
-**Files:**
-- `src/components/ExecutionView.tsx` — Execution progress view
-- `src/lib/venue.ts` — `executeActions()` method, `buildAssetIdMap()` for hex ID resolution
-
-**Try it:**
-1. Analyse meeting notes to get a delegation plan
-2. Open ⚙ Settings and configure at least one integration server URL
-3. Click **Execute Plan** — the view transitions to step-by-step progress
-4. Steps without a configured server show ➖ SKIPPED
-
-**Note:** Asset hex IDs are resolved automatically after connect — `pm:executeJiraActions` etc. are looked up via `venue.getAssets()` and invoked by their content-hash IDs, as the venue does not accept arbitrary name-based invocation outside the orchestrator adapter.
-
----
-
-### Phase 5: Configuration & Polish - COMPLETED
-
-**Completed:**
-- ✅ Settings panel (slide-out drawer) for MCP server endpoints
-- ✅ Auth token fields with show/hide toggle
-- ✅ Configuration persistence in localStorage (`covia-pm-settings`)
-- ✅ Dark mode toggle (moon/sun icon, persisted in localStorage)
-- ✅ Responsive design (breakpoints at 768px and 480px)
-- ✅ Error boundary (full-page fallback with "Try again" button)
-
----
-
-### Phase 6: Expanded Integrations & Accordion Settings — COMPLETED
-
-**What works:**
-- 18 new PM assets deployed automatically on connect (9 execution + 9 transcript-fetch)
-- 12 execution targets: Jira, Linear, Azure DevOps, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Google Calendar
-- 9 meeting intelligence sources: Granola, Fathom, Fireflies, Otter, tl;dv, Avoma, Read.ai, Zoom AI, Teams Meeting
-- Transcript fetch UI in meeting notes form — select source, enter meeting ID, click Fetch
-- Dynamic system prompt routes LLM to only configured targets
-- Dynamic execution steps — only shows steps for integrations with a server URL configured
-
-**Data-driven integration registry (`src/config/integrations.ts`):**
-
-| Task | How |
-|------|-----|
-| Add a tool | Append one `Integration` object to the `INTEGRATIONS` array |
-| Remove a tool | Delete its entry |
-| Hide without removing | Set `hidden: true` |
-| Recategorize | Change its `category` field |
-
-**Accordion Settings UI:**
-- Categories (Issue Trackers, Version Control, etc.) are collapsible
-- Each tool expands to show its fields; collapses when not in use
-- `● Configured` / `○ Not set` status badge per tool
-- Tools auto-expand on panel open if already configured
-
----
-
-### Phase 7: Testing & Documentation — PLANNED
-
-**Will include:**
-- Unit tests for PMVenueClient
-- Integration tests with mock venue
-- End-to-end tests
-- User guide
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_VENUE_URL` | Default venue URL | `http://localhost:8080` |
-| `VITE_OPENAI_API_KEY` | OpenAI API key passed to the venue's LangChain adapter. Dev use only — prefer setting `OPENAI_API_KEY` on the venue server for production. | — |
-
-### MCP Server Configuration
-
-Configure MCP servers via the ⚙ Settings panel. Values are persisted in `localStorage`:
-
-```typescript
-// Each integration: server URL + config field(s) + optional auth token
-// Stored in localStorage under 'covia-pm-settings'
-{
-  // Issue Trackers
-  jiraServer: 'https://jira-mcp.example.com/mcp', jiraProjectKey: 'PROJ', jiraToken: '...',
-  linearServer: '...', linearTeamKey: 'ENG', linearToken: '...',
-  azureServer: '...', azureOrg: 'myorg', azureProject: 'MyProject', azureToken: '...',
-  // Version Control
-  githubServer: '...', githubRepo: 'org/repo', githubToken: '...',
-  gitlabServer: '...', gitlabRepo: 'group/project', gitlabToken: '...',
-  // Communication
-  slackServer: '...', slackChannel: '#updates', slackToken: '...',
-  teamsServer: '...', teamsChannel: 'General', teamsToken: '...',
-  emailServer: '...', emailTo: 'stakeholders@example.com', emailToken: '...',
-  // Incident / Observability / Docs / Calendar
-  pagerdutyServer: '...', pagerdutyServiceId: 'P123', pagerdutyToken: '...',
-  sentryServer: '...', sentryProject: 'my-project', sentryToken: '...',
-  confluenceServer: '...', confluenceSpaceKey: 'ENG', confluenceToken: '...',
-  calendarServer: '...', calendarId: 'primary', calendarToken: '...',
-  // Meeting Intelligence (server + token per tool)
-  granolaServer: '...', granolaToken: '...',
-  fathomServer: '...', fathomToken: '...',
-  // ... fireflies, otter, tldv, avoma, read, zoom, teamsMeeting
-}
+```bash
+pnpm dev              # Development server with HMR
+pnpm build            # Type-check + production build → dist/
+pnpm preview          # Preview production build locally
+pnpm lint             # ESLint
+pnpm test             # Unit and component tests (Vitest, watch mode)
+pnpm test --run       # Single test pass (CI)
+pnpm test:coverage    # Coverage report
 ```
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_VENUE_URL` | `http://localhost:8080` | Pre-filled venue URL |
+| `VITE_OPENAI_API_KEY` | — | OpenAI key passed to the venue's LangChain adapter. Dev use only. |
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      COVIA PM FRONTEND                          │
-│                     (React + Vite + TypeScript)                 │
-│                                                                 │
-│  src/config/integrations.ts  ← single source of truth for      │
-│    21 integrations across 8 categories; add/hide by editing     │
-│    one file, no component code changes needed                   │
-│                                                                 │
-│  src/assets/operations/  (27 JSON assets, auto-deployed)        │
-│    pm-analyzeMeeting           LLM action-item extraction       │
-│    pm-fullWorkflow             end-to-end orchestration         │
-│    ── Execution (12 targets) ──────────────────────────────     │
-│    pm-executeJiraActions       pm-executeLinearActions          │
-│    pm-executeAzureDevOpsActions  pm-executeGithubActions        │
-│    pm-executeGitLabActions     pm-sendNotifications (Slack)     │
-│    pm-sendTeamsNotifications   pm-sendEmailNotifications        │
-│    pm-createPagerDutyIncidents pm-linkSentryIssues              │
-│    pm-writeConfluencePages     pm-scheduleCalendarEvents        │
-│    ── Transcript Fetch (9 sources) ────────────────────────     │
-│    pm-fetchGranolaNote         pm-fetchFathomSummary            │
-│    pm-fetchFirefliesTranscript pm-fetchOtterTranscript          │
-│    pm-fetchTldvHighlights      pm-fetchAvomaSummary             │
-│    pm-fetchReadSummary         pm-fetchZoomAISummary            │
-│    pm-fetchTeamsMeetingSummary                                  │
-│                                                                 │
-│  covialib (TypeScript Grid Client)                              │
-│    Grid.connect() → Venue                                       │
-│    venue.createAsset() → register all 27 operations on connect  │
-│    venue.run(assetId, input) → execute by content-hash ID       │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP / REST API
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        COVIA VENUE                              │
-│                    (Generic Grid Node)                          │
-├─────────────────────────────────────────────────────────────────┤
-│  Adapters (built-in):                                           │
-│    langchain    → LLM calls (OpenAI, Ollama, …)                │
-│    orchestrator → Multi-step workflows                          │
-│    mcp          → External tool calls via MCP servers           │
-├─────────────────────────────────────────────────────────────────┤
-│  All 27 PM assets registered on first connect; assets are       │
-│  content-addressed — re-deploying the same JSON is a no-op.    │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                       COVIA PM FRONTEND                          │
+│                   (React 19 + Vite 7 + TypeScript)               │
+│                                                                  │
+│  src/config/integrations.ts  ← single source of truth           │
+│    21 integrations, 8 categories                                 │
+│    drives: SettingsPanel · health checks · execution dispatch    │
+│                                                                  │
+│  src/assets/operations/  ← 24 JSON assets, auto-deployed         │
+│    pm-analyzeMeeting           LLM extraction (langchain)        │
+│    pm-fullWorkflow             end-to-end orchestration          │
+│    pm-execute* / pm-send*      12 execution targets (MCP)        │
+│    pm-fetch*                   9 transcript sources (MCP)        │
+│                                                                  │
+│  covialib  (TypeScript Grid Client)                              │
+│    Grid.connect() → deploy assets → build hex ID map            │
+│    venue.run(hexId, input) → execute operations                  │
+└─────────────────────────────────┬────────────────────────────────┘
+                                  │ HTTP
+                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                          COVIA VENUE                             │
+│  Adapters: langchain (LLM) · orchestrator · mcp (tools)         │
+│  All 24 PM assets registered on first connect                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## Project Structure
+---
 
-```
-covia-pm/
-├── src/
-│   ├── assets/
-│   │   └── operations/           # PM asset definitions (JSON) — 27 assets
-│   │       ├── index.ts          # Asset registry
-│   │       ├── pm-placeholder.json
-│   │       ├── pm-analyzeMeeting.json
-│   │       ├── pm-executeJiraActions.json
-│   │       ├── pm-executeGithubActions.json
-│   │       ├── pm-sendNotifications.json
-│   │       ├── pm-fullWorkflow.json
-│   │       └── pm-execute*.json / pm-fetch*.json  # Wave 1 assets (18 files)
-│   ├── config/
-│   │   └── integrations.ts       # Integration registry — add/remove/hide tools here
-│   ├── hooks/
-│   │   ├── useVenue.ts           # React hook for venue connection
-│   │   └── useSettings.ts        # React hook for settings persistence
-│   ├── lib/
-│   │   └── venue.ts              # PMVenueClient class
-│   ├── components/
-│   │   ├── index.ts              # Barrel exports
-│   │   ├── ErrorBoundary.tsx     # Full-page render error fallback
-│   │   ├── MeetingInput.tsx      # Meeting notes form + transcript fetch
-│   │   ├── DelegationPlan.tsx    # Action items display + Execute Plan button
-│   │   ├── ExecutionView.tsx     # Step-by-step execution progress
-│   │   └── SettingsPanel.tsx     # Accordion configuration drawer (data-driven)
-│   ├── App.tsx                   # Main application component
-│   ├── main.tsx                  # Entry point
-│   ├── types.ts                  # Shared TypeScript types
-│   └── index.css                 # Semantic CSS styles
-├── .env.example                  # Environment template
-├── .env.local                    # Local overrides — not committed
-├── CLAUDE.md                     # Development guide
-├── DESIGN.md                     # Architecture documentation
-└── package.json
-```
+## Project Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Venue connectivity and asset deployment | ✅ |
+| 2 | Asset definitions (24 PM operation JSONs) | ✅ |
+| 3 | Meeting analysis UI | ✅ |
+| 4 | Plan execution with step tracking | ✅ |
+| 5 | Settings, dark mode, responsive layout, error boundary | ✅ |
+| 6 | Wave 1 — 12 execution targets, 9 transcript sources, accordion UI | ✅ |
+| 7 | MCP health checks | ✅ |
+| 8 | Unit and component test suite (114 tests) | ✅ |
+| — | Integration tests (MSW), E2E (Playwright) | Planned |
+| — | Wave 2 — enterprise integrations (Asana, Bitbucket, Datadog, …) | Planned |
+
+---
 
 ## Troubleshooting
 
-### "Cannot find module '@covia-ai/covialib'"
+**`Cannot find module '@covia-ai/covialib'`**
+Build covialib first: `cd ../covialib && pnpm build`
 
-Ensure covialib is cloned and built as a sibling directory:
+**`Connection failed`**
+- Verify the venue is running: `curl http://localhost:8080/api/v1/status`
+- Check for CORS errors in the browser console
+- Ensure the URL includes the protocol (`http://` or `https://`)
 
-```bash
-cd ../covialib
-pnpm install
-pnpm build
-```
+**Analysis returns an error**
+The venue needs an LLM configured. Set `OPENAI_API_KEY` on the venue server, or add `VITE_OPENAI_API_KEY=sk-...` to `.env.local` for development.
 
-### "Connection failed" error
+**Integration shows ⚠ Unreachable**
+The MCP server URL is set but the server did not respond to a HEAD request within 5 seconds. Check that the MCP server is running and accessible from the browser.
 
-1. Verify the venue is running: `curl http://localhost:8080/api/v1/status`
-2. Check for CORS issues in browser console
-3. Ensure the venue URL includes the protocol (`http://` or `https://`)
-
-### Assets not deploying
-
-Check browser console for errors. Common issues:
-- Venue not reachable
-- Asset already exists with different content (hash mismatch)
-- Network timeout
+---
 
 ## Related Projects
 
-- [covialib](https://github.com/covia-ai/covialib) - TypeScript Grid client
-- [covia-repo](https://github.com/covia-ai/covia-repo) - Venue server
-- [covia-sdk-py](https://github.com/covia-ai/covia-sdk-py) - Python SDK
+- [covialib](https://github.com/covia-ai/covialib) — TypeScript Grid client
+- [covia-repo](https://github.com/covia-ai/covia-repo) — Venue server
+- [covia-sdk-py](https://github.com/covia-ai/covia-sdk-py) — Python SDK
 - [Covia Documentation](https://docs.covia.ai)
 
-## License
+---
+
+## For Contributors
+
+See [CLAUDE.md](./CLAUDE.md) for the development guide covering architecture patterns, how to add integrations, testing conventions, and common gotchas.
+
+---
+
+## Licence
 
 MIT
