@@ -118,6 +118,24 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 | Connected | Green | Connected, assets deployed |
 | Error | Red | Connection failed (see error message) |
 
+## Current Status
+
+All core phases are complete and working end to end:
+
+| # | Phase | Status |
+|---|-------|--------|
+| 1 | Venue connection & asset deployment | ✅ Complete |
+| 2 | Asset definitions (PM operation JSON) | ✅ Complete |
+| 3 | Meeting analysis UI | ✅ Complete |
+| 4 | Plan execution & step tracking | ✅ Complete |
+| 5 | Settings, dark mode, responsive layout | ✅ Complete |
+| 6 | Wave 1 — 12 execution targets + 9 transcript sources | ✅ Complete |
+| 7 | Testing & documentation | Planned |
+
+**What works today:** connect to any Covia venue → paste or fetch meeting notes → analyse with GPT-4 → review the delegation plan → execute actions against whichever integrations are configured.
+
+---
+
 ## Phase Status & Features
 
 ### Phase 1: Foundation - COMPLETED
@@ -246,7 +264,7 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 
 ---
 
-### Wave 1 / Phase 7: Expanded Integrations & Accordion Settings - COMPLETED
+### Phase 6: Expanded Integrations & Accordion Settings — COMPLETED
 
 **What works:**
 - 18 new PM assets deployed automatically on connect (9 execution + 9 transcript-fetch)
@@ -273,7 +291,7 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 
 ---
 
-### Phase 6: Testing & Documentation - PLANNED
+### Phase 7: Testing & Documentation — PLANNED
 
 **Will include:**
 - Unit tests for PMVenueClient
@@ -327,23 +345,32 @@ Configure MCP servers via the ⚙ Settings panel. Values are persisted in `local
 ┌─────────────────────────────────────────────────────────────────┐
 │                      COVIA PM FRONTEND                          │
 │                     (React + Vite + TypeScript)                 │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  /src/assets/operations/                                │    │
-│  │    pm-analyzeMeeting.json      (LLM extraction)        │    │
-│  │    pm-executeJiraActions.json  (MCP orchestration)     │    │
-│  │    pm-executeGithubActions.json                        │    │
-│  │    pm-sendNotifications.json                           │    │
-│  │    pm-fullWorkflow.json        (end-to-end)            │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                               │                                  │
-│                    on connect: ensureAssets()                   │
-│                               │                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  covialib (TypeScript Grid Client)                      │    │
-│  │    Grid.connect() → Venue                               │    │
-│  │    venue.createAsset() → register operations            │    │
-│  │    venue.invoke() / venue.run() → execute               │    │
-│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  src/config/integrations.ts  ← single source of truth for      │
+│    21 integrations across 8 categories; add/hide by editing     │
+│    one file, no component code changes needed                   │
+│                                                                 │
+│  src/assets/operations/  (27 JSON assets, auto-deployed)        │
+│    pm-analyzeMeeting           LLM action-item extraction       │
+│    pm-fullWorkflow             end-to-end orchestration         │
+│    ── Execution (12 targets) ──────────────────────────────     │
+│    pm-executeJiraActions       pm-executeLinearActions          │
+│    pm-executeAzureDevOpsActions  pm-executeGithubActions        │
+│    pm-executeGitLabActions     pm-sendNotifications (Slack)     │
+│    pm-sendTeamsNotifications   pm-sendEmailNotifications        │
+│    pm-createPagerDutyIncidents pm-linkSentryIssues              │
+│    pm-writeConfluencePages     pm-scheduleCalendarEvents        │
+│    ── Transcript Fetch (9 sources) ────────────────────────     │
+│    pm-fetchGranolaNote         pm-fetchFathomSummary            │
+│    pm-fetchFirefliesTranscript pm-fetchOtterTranscript          │
+│    pm-fetchTldvHighlights      pm-fetchAvomaSummary             │
+│    pm-fetchReadSummary         pm-fetchZoomAISummary            │
+│    pm-fetchTeamsMeetingSummary                                  │
+│                                                                 │
+│  covialib (TypeScript Grid Client)                              │
+│    Grid.connect() → Venue                                       │
+│    venue.createAsset() → register all 27 operations on connect  │
+│    venue.run(assetId, input) → execute by content-hash ID       │
 └──────────────────────────────┬──────────────────────────────────┘
                                │ HTTP / REST API
                                ▼
@@ -352,14 +379,12 @@ Configure MCP servers via the ⚙ Settings panel. Values are persisted in `local
 │                    (Generic Grid Node)                          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Adapters (built-in):                                           │
-│    langchain  → LLM calls (OpenAI, Ollama)                     │
+│    langchain    → LLM calls (OpenAI, Ollama, …)                │
 │    orchestrator → Multi-step workflows                          │
-│    mcp       → External tool calls (Jira, GitHub, Slack)       │
+│    mcp          → External tool calls via MCP servers           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Assets (deployed by frontend):                                 │
-│    pm:analyzeMeeting     │ pm:executeJiraActions               │
-│    pm:executeGithubActions │ pm:sendNotifications              │
-│    pm:fullWorkflow                                              │
+│  All 27 PM assets registered on first connect; assets are       │
+│  content-addressed — re-deploying the same JSON is a no-op.    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
