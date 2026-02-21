@@ -3,6 +3,7 @@ import './index.css'
 import { useVenue } from './hooks/useVenue'
 import type { ConnectionStatus } from './hooks/useVenue'
 import { useSettings } from './hooks/useSettings'
+import { useHealthChecks } from './hooks/useHealthChecks'
 import { MeetingInput, DelegationPlan, SettingsPanel, ExecutionView } from './components'
 import type { AnalysisResult, MeetingType, AnalysisStatus, ExecutionState, ExecutionStep, PMSettings, TranscriptSource } from './types'
 
@@ -192,6 +193,7 @@ function App() {
   }, []);
 
   const isConnected = status === 'connected';
+  const { health } = useHealthChecks(settings, isConnected);
   const isAnalyzing = analysisStatus === 'analyzing';
   const isExecuting = executionState.status === 'running';
 
@@ -286,6 +288,7 @@ function App() {
             onExecute={handleExecute}
             settings={settings}
             isExecuting={isExecuting}
+            health={health}
           />
         )}
 
@@ -360,6 +363,7 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={saveSettings}
+        health={health}
       />
     </div>
   )

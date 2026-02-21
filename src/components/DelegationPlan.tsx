@@ -1,4 +1,4 @@
-import type { AnalysisResult, ActionItem, ActionTarget, Priority, PMSettings } from '../types';
+import type { AnalysisResult, ActionItem, ActionTarget, Priority, PMSettings, HealthMap } from '../types';
 
 interface DelegationPlanProps {
   result: AnalysisResult | null;
@@ -6,6 +6,7 @@ interface DelegationPlanProps {
   onExecute: () => void;
   settings: PMSettings;
   isExecuting: boolean;
+  health?: HealthMap;
 }
 
 const TARGET_CONFIG: Record<ActionTarget, { label: string; icon: string; color: string }> = {
@@ -36,6 +37,23 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   create_branch: 'Create Branch',
   send_notification: 'Notification',
 };
+
+const TARGET_SERVER_KEY: Record<ActionTarget, keyof PMSettings> = {
+  jira:           'jiraServer',
+  linear:         'linearServer',
+  'azure-devops': 'azureServer',
+  github:         'githubServer',
+  gitlab:         'gitlabServer',
+  slack:          'slackServer',
+  teams:          'teamsServer',
+  email:          'emailServer',
+  pagerduty:      'pagerdutyServer',
+  sentry:         'sentryServer',
+  confluence:     'confluenceServer',
+  calendar:       'calendarServer',
+};
+
+const ALL_INTEGRATION_SERVER_FIELDS: (keyof PMSettings)[] = Object.values(TARGET_SERVER_KEY);
 
 function groupByTarget(items: ActionItem[]): Record<ActionTarget, ActionItem[]> {
   return items.reduce((acc, item) => {
@@ -88,7 +106,7 @@ function TargetGroup({ target, items }: { target: ActionTarget; items: ActionIte
   );
 }
 
-export function DelegationPlan({ result, error, onExecute, settings, isExecuting }: DelegationPlanProps) {
+export function DelegationPlan({ result, error, onExecute, settings, isExecuting, health }: DelegationPlanProps) {
   if (error) {
     return (
       <section className="delegation-plan-section">
@@ -107,11 +125,16 @@ export function DelegationPlan({ result, error, onExecute, settings, isExecuting
   }
 
   const grouped = groupByTarget(result.actionItems);
-  const targets: ActionTarget[] = ['jira', 'github', 'slack'];
+  const targets = Object.keys(grouped) as ActionTarget[];
   const hasActions = result.actionItems.length > 0;
   const hasBlockers = result.blockers.length > 0;
   const hasDecisions = result.decisions.length > 0;
-  const hasAnyIntegration = !!(settings.jiraServer || settings.githubServer || settings.slackServer);
+  const hasAnyIntegration = ALL_INTEGRATION_SERVER_FIELDS.some(
+    f => !!(settings as unknown as Record<string, string>)[f]
+  );
+  const hasUnreachable = health != null && result.actionItems.some(
+    item => health[TARGET_SERVER_KEY[item.target]] === 'unreachable'
+  );
 
   return (
     <section className="delegation-plan-section">
@@ -165,6 +188,11 @@ export function DelegationPlan({ result, error, onExecute, settings, isExecuting
           {!hasAnyIntegration && (
             <p className="execute-warning">
               ⚠ Configure integrations in ⚙ Settings before executing
+            </p>
+          )}
+          {hasUnreachable && (
+            <p className="execute-warning">
+              ⚠ One or more target servers are unreachable — execution may fail
             </p>
           )}
           <button

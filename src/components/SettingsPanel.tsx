@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { PMSettings } from '../types';
+import type { PMSettings, HealthMap } from '../types';
 import { INTEGRATIONS, CATEGORIES } from '../config/integrations';
 import type { Integration } from '../config/integrations';
 
@@ -8,6 +8,7 @@ interface SettingsPanelProps {
   onClose: () => void;
   settings: PMSettings;
   onSave: (settings: PMSettings) => void;
+  health?: HealthMap;
 }
 
 // ─── TokenField ────────────────────────────────────────────────────────────────
@@ -59,14 +60,27 @@ function IntegrationAccordion({
   set,
   isExpanded,
   onToggle,
+  health,
 }: {
   integration: Integration;
   draft: PMSettings;
   set: (field: keyof PMSettings) => (value: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
+  health?: HealthMap;
 }) {
   const isConfigured = !!(draft[integration.serverKey] as string);
+  const serverHealth = health?.[integration.serverKey];
+
+  const { statusText, statusClass } = !isConfigured
+    ? { statusText: '○ Not set',     statusClass: 'integration-status' }
+    : serverHealth === 'checking'
+    ? { statusText: '◌ Checking…',   statusClass: 'integration-status checking' }
+    : serverHealth === 'ok'
+    ? { statusText: '● Online',      statusClass: 'integration-status ok' }
+    : serverHealth === 'unreachable'
+    ? { statusText: '⚠ Unreachable', statusClass: 'integration-status unreachable' }
+    : { statusText: '● Configured',  statusClass: 'integration-status ok' };
 
   return (
     <div className={`integration-item${isExpanded ? ' expanded' : ''}`}>
@@ -85,8 +99,8 @@ function IntegrationAccordion({
         </span>
         <span className="integration-name">{integration.name}</span>
         <span className="integration-desc">{integration.description}</span>
-        <span className={`integration-status${isConfigured ? ' ok' : ''}`}>
-          {isConfigured ? '● Configured' : '○ Not set'}
+        <span className={statusClass}>
+          {statusText}
         </span>
         <span className={`integration-chevron${isExpanded ? ' open' : ''}`} aria-hidden="true">
           ▾
@@ -141,6 +155,7 @@ function CategorySection({
   set,
   expandedTools,
   onToggleTool,
+  health,
 }: {
   label: string;
   integrations: Integration[];
@@ -148,6 +163,7 @@ function CategorySection({
   set: (field: keyof PMSettings) => (value: string) => void;
   expandedTools: Set<string>;
   onToggleTool: (id: string) => void;
+  health?: HealthMap;
 }) {
   // Start expanded only if at least one integration in this category is configured
   const isAnyConfigured = integrations.some(i => !!(draft[i.serverKey] as string));
@@ -184,6 +200,7 @@ function CategorySection({
               set={set}
               isExpanded={expandedTools.has(integration.id)}
               onToggle={() => onToggleTool(integration.id)}
+              health={health}
             />
           ))}
         </div>
@@ -204,7 +221,7 @@ function buildInitialExpanded(settings: PMSettings): Set<string> {
   return s;
 }
 
-export function SettingsPanel({ isOpen, onClose, settings, onSave }: SettingsPanelProps) {
+export function SettingsPanel({ isOpen, onClose, settings, onSave, health }: SettingsPanelProps) {
   const [draft, setDraft] = useState<PMSettings>(settings);
   const [expandedTools, setExpandedTools] = useState<Set<string>>(
     () => buildInitialExpanded(settings)
@@ -284,6 +301,7 @@ export function SettingsPanel({ isOpen, onClose, settings, onSave }: SettingsPan
                 set={set}
                 expandedTools={expandedTools}
                 onToggleTool={toggleTool}
+                health={health}
               />
             );
           })}
@@ -307,6 +325,7 @@ export function SettingsPanel({ isOpen, onClose, settings, onSave }: SettingsPan
                 set={set}
                 expandedTools={expandedTools}
                 onToggleTool={toggleTool}
+                health={health}
               />
             );
           })}

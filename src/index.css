@@ -1181,6 +1181,21 @@ nav a:hover {
   color: var(--color-success);
 }
 
+.integration-status.checking {
+  color: var(--color-muted-foreground);
+  opacity: 0.7;
+  animation: health-pulse 1.2s ease-in-out infinite;
+}
+
+.integration-status.unreachable {
+  color: var(--color-warning);
+}
+
+@keyframes health-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 0.35; }
+}
+
 .integration-chevron {
   font-size: 0.75rem;
   color: var(--color-muted-foreground);

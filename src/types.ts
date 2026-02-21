@@ -50,6 +50,15 @@ export interface ExecutionState {
   steps: ExecutionStep[];
 }
 
+// ── Health checks ──────────────────────────────────────────────────────────────
+
+export type HealthStatus = 'unchecked' | 'checking' | 'ok' | 'unreachable';
+
+/** Keyed by PMSettings server field (e.g. 'jiraServer'). Only populated for configured integrations. */
+export type HealthMap = Partial<Record<keyof PMSettings, HealthStatus>>;
+
+// ── Integration settings ───────────────────────────────────────────────────────
+
 export interface PMSettings {
   // ── Existing ──────────────────────────────────────────────────────
   jiraServer: string;
