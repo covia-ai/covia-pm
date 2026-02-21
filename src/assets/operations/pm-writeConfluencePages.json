@@ -1,0 +1,59 @@
+{
+  "name": "pm:writeConfluencePages",
+  "description": "Create Confluence pages documenting decisions and action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["confluence", "documentation", "pages", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='confluence'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "confluenceServer": { "type": "string", "description": "MCP server URL for Confluence" },
+        "spaceKey": { "type": "string", "description": "Confluence space key (e.g. 'ENG')" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "confluenceServer", "spaceKey"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Confluence Pages",
+        "input": {
+          "server": ["input", "confluenceServer"],
+          "toolName": ["const", "create_page"],
+          "arguments": {
+            "spaceKey": ["input", "spaceKey"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

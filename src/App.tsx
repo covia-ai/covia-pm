@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import './index.css'
 import { useVenue } from './hooks/useVenue'
 import type { ConnectionStatus } from './hooks/useVenue'
 import { useSettings } from './hooks/useSettings'
 import { MeetingInput, DelegationPlan, SettingsPanel, ExecutionView } from './components'
-import type { AnalysisResult, MeetingType, AnalysisStatus, ExecutionState, ExecutionStep } from './types'
+import type { AnalysisResult, MeetingType, AnalysisStatus, ExecutionState, ExecutionStep, PMSettings, TranscriptSource } from './types'
 
 function ConnectionIndicator({ status, venueId, error }: {
   status: ConnectionStatus;
@@ -80,11 +80,40 @@ function useDarkMode() {
   return { dark, toggle: () => setDark(d => !d) };
 }
 
-const INITIAL_STEPS: ExecutionStep[] = [
-  { id: 'jira',   label: 'Creating Jira Issues',        icon: 'J', status: 'pending' },
-  { id: 'github', label: 'Executing GitHub Actions',    icon: 'G', status: 'pending' },
-  { id: 'slack',  label: 'Sending Slack Notifications', icon: 'S', status: 'pending' },
+const SOURCE_SERVER_KEYS: Record<TranscriptSource, keyof PMSettings> = {
+  granola: 'granolaServer',
+  fathom: 'fathomServer',
+  fireflies: 'firefliesServer',
+  otter: 'otterServer',
+  tldv: 'tldvServer',
+  avoma: 'avomaServer',
+  read: 'readServer',
+  zoom: 'zoomServer',
+  'teams-meeting': 'teamsMeetingServer',
+};
+
+const ALL_TRANSCRIPT_SOURCES = Object.keys(SOURCE_SERVER_KEYS) as TranscriptSource[];
+
+const STEP_DEFS: { id: ExecutionStep['id']; label: string; icon: string; serverField: keyof PMSettings }[] = [
+  { id: 'jira',        label: 'Creating Jira Issues',          icon: 'J',  serverField: 'jiraServer' },
+  { id: 'linear',      label: 'Creating Linear Issues',        icon: 'L',  serverField: 'linearServer' },
+  { id: 'azure-devops',label: 'Creating Azure Work Items',     icon: 'A',  serverField: 'azureServer' },
+  { id: 'github',      label: 'Executing GitHub Actions',      icon: 'G',  serverField: 'githubServer' },
+  { id: 'gitlab',      label: 'Executing GitLab Actions',      icon: 'GL', serverField: 'gitlabServer' },
+  { id: 'slack',       label: 'Sending Slack Notifications',   icon: 'S',  serverField: 'slackServer' },
+  { id: 'teams',       label: 'Sending Teams Notifications',   icon: 'T',  serverField: 'teamsServer' },
+  { id: 'email',       label: 'Sending Email Notifications',   icon: 'E',  serverField: 'emailServer' },
+  { id: 'pagerduty',   label: 'Creating PagerDuty Incidents',  icon: 'P',  serverField: 'pagerdutyServer' },
+  { id: 'sentry',      label: 'Linking Sentry Issues',         icon: 'SE', serverField: 'sentryServer' },
+  { id: 'confluence',  label: 'Writing Confluence Pages',      icon: 'C',  serverField: 'confluenceServer' },
+  { id: 'calendar',    label: 'Scheduling Calendar Events',    icon: 'CA', serverField: 'calendarServer' },
 ];
+
+function buildExecutionSteps(settings: PMSettings): ExecutionStep[] {
+  return STEP_DEFS
+    .filter(s => !!(settings as unknown as Record<string, string>)[s.serverField])
+    .map(({ id, label, icon }) => ({ id, label, icon, status: 'pending' as const }));
+}
 
 function App() {
   const { client, status, error, venueId, connect, disconnect } = useVenue();
@@ -98,25 +127,35 @@ function App() {
   const [executionState, setExecutionState] = useState<ExecutionState>({ status: 'idle', steps: [] });
   const [showExecution, setShowExecution] = useState(false);
 
+  const availableSources = useMemo(
+    () => ALL_TRANSCRIPT_SOURCES.filter(s => !!(settings as unknown as Record<string, string>)[SOURCE_SERVER_KEYS[s]]),
+    [settings]
+  );
+
   const handleAnalyze = useCallback(async (notes: string, meetingType: MeetingType) => {
     setAnalysisStatus('analyzing');
     setAnalysisError(null);
     setLastNotes(notes);
 
     try {
-      const result = await client.analyzeMeeting(notes, meetingType);
+      const result = await client.analyzeMeeting(notes, meetingType, settings);
       setAnalysisResult(result);
       setAnalysisStatus('success');
     } catch (e) {
       setAnalysisError(e instanceof Error ? e : new Error(String(e)));
       setAnalysisStatus('error');
     }
-  }, [client]);
+  }, [client, settings]);
+
+  const handleFetchTranscript = useCallback(
+    (source: TranscriptSource, callRef: string) => client.fetchTranscript(source, callRef, settings),
+    [client, settings]
+  );
 
   const handleExecute = useCallback(async () => {
     if (!analysisResult) return;
 
-    const initialSteps = INITIAL_STEPS.map(s => ({ ...s }));
+    const initialSteps = buildExecutionSteps(settings);
     setExecutionState({ status: 'running', steps: initialSteps });
     setShowExecution(true);
 
@@ -230,6 +269,8 @@ function App() {
           onAnalyze={handleAnalyze}
           isAnalyzing={isAnalyzing}
           isConnected={isConnected}
+          onFetchTranscript={handleFetchTranscript}
+          availableSources={availableSources}
         />
 
         {showExecution ? (

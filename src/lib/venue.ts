@@ -1,6 +1,6 @@
 import { Grid, Venue } from '@covia-ai/covialib';
 import pmAssets from '../assets/operations';
-import type { AnalysisResult, MeetingType, PMSettings, ExecutionStep, ExecutionStepStatus } from '../types';
+import type { AnalysisResult, MeetingType, PMSettings, ExecutionStep, ExecutionStepStatus, TranscriptSource } from '../types';
 
 export type { AnalysisResult };
 
@@ -12,6 +12,43 @@ export interface WorkflowConfig {
   githubRepo?: string;
   slackChannel?: string;
 }
+
+const FETCH_ASSET_NAMES: Record<TranscriptSource, string> = {
+  granola:       'pm:fetchGranolaNote',
+  fathom:        'pm:fetchFathomSummary',
+  fireflies:     'pm:fetchFirefliesTranscript',
+  otter:         'pm:fetchOtterTranscript',
+  tldv:          'pm:fetchTldvHighlights',
+  avoma:         'pm:fetchAvomaSummary',
+  read:          'pm:fetchReadSummary',
+  zoom:          'pm:fetchZoomAISummary',
+  'teams-meeting': 'pm:fetchTeamsMeetingSummary',
+};
+
+// Maps each TranscriptSource to its server/token field names in PMSettings
+const FETCH_SERVER_KEYS: Record<TranscriptSource, keyof PMSettings> = {
+  granola:       'granolaServer',
+  fathom:        'fathomServer',
+  fireflies:     'firefliesServer',
+  otter:         'otterServer',
+  tldv:          'tldvServer',
+  avoma:         'avomaServer',
+  read:          'readServer',
+  zoom:          'zoomServer',
+  'teams-meeting': 'teamsMeetingServer',
+};
+
+const FETCH_TOKEN_KEYS: Record<TranscriptSource, keyof PMSettings> = {
+  granola:       'granolaToken',
+  fathom:        'fathomToken',
+  fireflies:     'firefliesToken',
+  otter:         'otterToken',
+  tldv:          'tldvToken',
+  avoma:         'avomaToken',
+  read:          'readToken',
+  zoom:          'zoomToken',
+  'teams-meeting': 'teamsMeetingToken',
+};
 
 export class PMVenueClient {
   private venue: Venue | null = null;
@@ -41,9 +78,6 @@ export class PMVenueClient {
   private async ensureAssets(): Promise<void> {
     if (this.assetsDeployed || !this.venue) return;
 
-    // For now, just try to create all assets
-    // The venue will handle duplicates (either reject or update)
-    // In the future, we could add version checking and update logic
     for (const assetMetadata of pmAssets) {
       const assetName = (assetMetadata as { name?: string }).name;
 
@@ -56,7 +90,6 @@ export class PMVenueClient {
         await this.venue.createAsset(assetMetadata);
         console.log(`Asset ${assetName} deployed successfully`);
       } catch (e) {
-        // Asset might already exist - that's OK
         const errorMsg = e instanceof Error ? e.message : String(e);
         if (errorMsg.includes('409') || errorMsg.includes('already exists')) {
           console.log(`Asset ${assetName} already exists`);
@@ -86,7 +119,42 @@ export class PMVenueClient {
     }
   }
 
-  async analyzeMeeting(notes: string, meetingType: MeetingType = 'ad_hoc'): Promise<AnalysisResult> {
+  private buildTargetMappings(settings?: PMSettings): string {
+    const lines: string[] = [];
+
+    if (!settings || settings.jiraServer)
+      lines.push('- Bugs, features, tasks → target: "jira", type: "create_issue"');
+    if (settings?.linearServer)
+      lines.push('- Bugs, features, tasks (if using Linear) → target: "linear", type: "create_issue"');
+    if (settings?.azureServer)
+      lines.push('- Work items, user stories (Azure DevOps) → target: "azure-devops", type: "create_issue"');
+    if (!settings || settings.githubServer)
+      lines.push('- Code reviews, pull requests → target: "github", type: "review_pr"');
+    if (!settings || settings.githubServer)
+      lines.push('- New feature branches → target: "github", type: "create_branch"');
+    if (settings?.gitlabServer)
+      lines.push('- Merge requests (GitLab) → target: "gitlab", type: "review_pr"');
+    if (settings?.gitlabServer)
+      lines.push('- New feature branches (GitLab) → target: "gitlab", type: "create_branch"');
+    if (!settings || settings.slackServer)
+      lines.push('- Team updates, announcements → target: "slack", type: "send_notification"');
+    if (settings?.teamsServer)
+      lines.push('- Team updates (Microsoft Teams) → target: "teams", type: "send_notification"');
+    if (settings?.emailServer)
+      lines.push('- External communications, stakeholder updates → target: "email", type: "send_notification"');
+    if (settings?.pagerdutyServer)
+      lines.push('- Critical blockers, production incidents → target: "pagerduty", type: "create_issue"');
+    if (settings?.sentryServer)
+      lines.push('- Error tracking, bug reports from monitoring → target: "sentry", type: "create_issue"');
+    if (settings?.confluenceServer)
+      lines.push('- Documentation tasks, decisions to document → target: "confluence", type: "create_issue"');
+    if (settings?.calendarServer)
+      lines.push('- Follow-up meetings, scheduled deadlines → target: "calendar", type: "send_notification"');
+
+    return lines.join('\n');
+  }
+
+  async analyzeMeeting(notes: string, meetingType: MeetingType = 'ad_hoc', settings?: PMSettings): Promise<AnalysisResult> {
     if (!this.venue) {
       throw new Error('Not connected to venue');
     }
@@ -97,6 +165,24 @@ export class PMVenueClient {
       retro: 'This is a retrospective meeting. Capture action items from retrospective discussions.',
       ad_hoc: 'This is a general meeting. Extract all action items mentioned.'
     };
+
+    const targetMappings = this.buildTargetMappings(settings);
+    const validTargets = settings
+      ? [
+          settings.jiraServer && 'jira',
+          settings.linearServer && 'linear',
+          settings.azureServer && 'azure-devops',
+          settings.githubServer && 'github',
+          settings.gitlabServer && 'gitlab',
+          settings.slackServer && 'slack',
+          settings.teamsServer && 'teams',
+          settings.emailServer && 'email',
+          settings.pagerdutyServer && 'pagerduty',
+          settings.sentryServer && 'sentry',
+          settings.confluenceServer && 'confluence',
+          settings.calendarServer && 'calendar',
+        ].filter(Boolean).join(' | ')
+      : '"jira" | "github" | "slack"';
 
     const systemPrompt = `You are an expert project manager assistant. Analyze the provided meeting notes and extract structured information.
 
@@ -111,7 +197,7 @@ You MUST respond with valid JSON only, no markdown or explanation. Use this exac
       "description": "Clear description of the action",
       "assignee": "Person's name or null if unassigned",
       "priority": "critical" | "high" | "medium" | "low",
-      "target": "jira" | "github" | "slack",
+      "target": ${validTargets},
       "metadata": { "any": "additional context" }
     }
   ],
@@ -120,14 +206,10 @@ You MUST respond with valid JSON only, no markdown or explanation. Use this exac
 }
 
 Map actions to targets:
-- Bugs, features, tasks -> target: "jira", type: "create_issue"
-- Code reviews, PRs -> target: "github", type: "review_pr"
-- New feature branches -> target: "github", type: "create_branch"
-- Team updates, announcements -> target: "slack", type: "send_notification"
+${targetMappings}
 
 Respond with JSON only.`;
 
-    // Call langchain:openai directly since venue requires asset hex IDs or adapter:operation format
     const openAiApiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
     const result = await this.venue.run('langchain:openai', {
       prompt: notes,
@@ -136,12 +218,8 @@ Respond with JSON only.`;
       ...(openAiApiKey ? { apiKey: openAiApiKey } : {})
     });
 
-    // Log the result for debugging
     console.log('LLM result:', result);
 
-    // The langchain adapter returns { response: string } where response is the LLM output
-    // venue.run() returns the job output directly
-    // Handle various response formats
     let responseText: string | undefined;
 
     if (typeof result === 'string') {
@@ -149,20 +227,15 @@ Respond with JSON only.`;
     } else if (result?.response) {
       responseText = result.response;
     } else if (result) {
-      // Maybe the result IS the response directly
       responseText = JSON.stringify(result);
     }
 
     if (!responseText) {
-      // Provide more context about what we received
       throw new Error(`No response from meeting analysis. Received: ${JSON.stringify(result)}`);
     }
 
     try {
-      // Try to extract JSON from the response (LLM might include markdown code blocks)
       let jsonStr = responseText;
-
-      // Remove markdown code blocks if present
       const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         jsonStr = jsonMatch[1].trim();
@@ -170,7 +243,6 @@ Respond with JSON only.`;
 
       const parsed = JSON.parse(jsonStr) as AnalysisResult;
 
-      // Validate the response structure
       return {
         actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
         blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
@@ -181,14 +253,18 @@ Respond with JSON only.`;
     }
   }
 
-  async executeFullWorkflow(notes: string, config: WorkflowConfig): Promise<unknown> {
-    if (!this.venue) {
-      throw new Error('Not connected to venue');
-    }
-    return this.venue.run('pm:fullWorkflow', {
-      notes,
-      ...config
-    });
+  async fetchTranscript(source: TranscriptSource, callRef: string, settings: PMSettings): Promise<string> {
+    if (!this.venue) throw new Error('Not connected to venue');
+
+    const assetName = FETCH_ASSET_NAMES[source];
+    const assetId = this.assetIdMap.get(assetName);
+    if (!assetId) throw new Error(`Asset ${assetName} not found — ensure the venue is connected`);
+
+    const server = settings[FETCH_SERVER_KEYS[source]] as string;
+    const token = settings[FETCH_TOKEN_KEYS[source]] as string;
+
+    const result = await this.venue.run(assetId, { callRef, server, token });
+    return result?.transcript ?? result?.summary ?? JSON.stringify(result);
   }
 
   async executeActions(
@@ -199,69 +275,76 @@ Respond with JSON only.`;
   ): Promise<void> {
     if (!this.venue) throw new Error('Not connected to venue');
 
-    const jiraItems = analysisResult.actionItems.filter(i => i.target === 'jira');
-    const githubItems = analysisResult.actionItems.filter(i => i.target === 'github');
-    const slackItems = analysisResult.actionItems.filter(i => i.target === 'slack');
+    const byTarget = (target: string) => analysisResult.actionItems.filter(i => i.target === target);
 
-    // Jira
-    const jiraId = this.assetIdMap.get('pm:executeJiraActions');
-    if (settings.jiraServer && jiraItems.length > 0 && jiraId) {
-      onStepUpdate('jira', 'running');
-      try {
-        const result = await this.venue.run(jiraId, {
-          actions: jiraItems,
-          jiraServer: settings.jiraServer,
-          projectKey: settings.jiraProjectKey,
-          token: settings.jiraToken,
-          notes,
-        });
-        onStepUpdate('jira', 'success', result);
-      } catch (e) {
-        onStepUpdate('jira', 'error', undefined, e instanceof Error ? e.message : String(e));
+    const dispatch = async (
+      target: ExecutionStep['id'],
+      assetName: string,
+      serverField: string,
+      input: Record<string, unknown>
+    ) => {
+      const assetId = this.assetIdMap.get(assetName);
+      const server = (settings as unknown as Record<string, string>)[serverField];
+      const items = byTarget(target);
+      if (server && items.length > 0 && assetId) {
+        onStepUpdate(target, 'running');
+        try {
+          const result = await this.venue!.run(assetId, { actions: items, notes, ...input });
+          onStepUpdate(target, 'success', result);
+        } catch (e) {
+          onStepUpdate(target, 'error', undefined, e instanceof Error ? e.message : String(e));
+        }
+      } else {
+        onStepUpdate(target, 'skipped');
       }
-    } else {
-      onStepUpdate('jira', 'skipped');
-    }
+    };
 
-    // GitHub
-    const githubId = this.assetIdMap.get('pm:executeGithubActions');
-    if (settings.githubServer && githubItems.length > 0 && githubId) {
-      onStepUpdate('github', 'running');
-      try {
-        const result = await this.venue.run(githubId, {
-          actions: githubItems,
-          githubServer: settings.githubServer,
-          repo: settings.githubRepo,
-          token: settings.githubToken,
-          notes,
-        });
-        onStepUpdate('github', 'success', result);
-      } catch (e) {
-        onStepUpdate('github', 'error', undefined, e instanceof Error ? e.message : String(e));
-      }
-    } else {
-      onStepUpdate('github', 'skipped');
-    }
+    await dispatch('jira', 'pm:executeJiraActions', 'jiraServer', {
+      jiraServer: settings.jiraServer, projectKey: settings.jiraProjectKey, token: settings.jiraToken,
+    });
+    await dispatch('linear', 'pm:executeLinearActions', 'linearServer', {
+      linearServer: settings.linearServer, teamKey: settings.linearTeamKey, token: settings.linearToken,
+    });
+    await dispatch('azure-devops', 'pm:executeAzureDevOpsActions', 'azureServer', {
+      azureServer: settings.azureServer, org: settings.azureOrg, project: settings.azureProject, token: settings.azureToken,
+    });
+    await dispatch('github', 'pm:executeGithubActions', 'githubServer', {
+      githubServer: settings.githubServer, repo: settings.githubRepo, token: settings.githubToken,
+    });
+    await dispatch('gitlab', 'pm:executeGitLabActions', 'gitlabServer', {
+      gitlabServer: settings.gitlabServer, repo: settings.gitlabRepo, token: settings.gitlabToken,
+    });
+    await dispatch('slack', 'pm:sendNotifications', 'slackServer', {
+      slackServer: settings.slackServer, channel: settings.slackChannel, token: settings.slackToken,
+    });
+    await dispatch('teams', 'pm:sendTeamsNotifications', 'teamsServer', {
+      teamsServer: settings.teamsServer, channel: settings.teamsChannel, token: settings.teamsToken,
+    });
+    await dispatch('email', 'pm:sendEmailNotifications', 'emailServer', {
+      emailServer: settings.emailServer, to: settings.emailTo, token: settings.emailToken,
+    });
+    await dispatch('pagerduty', 'pm:createPagerDutyIncidents', 'pagerdutyServer', {
+      pagerdutyServer: settings.pagerdutyServer, serviceId: settings.pagerdutyServiceId, token: settings.pagerdutyToken,
+    });
+    await dispatch('sentry', 'pm:linkSentryIssues', 'sentryServer', {
+      sentryServer: settings.sentryServer, project: settings.sentryProject, token: settings.sentryToken,
+    });
+    await dispatch('confluence', 'pm:writeConfluencePages', 'confluenceServer', {
+      confluenceServer: settings.confluenceServer, spaceKey: settings.confluenceSpaceKey, token: settings.confluenceToken,
+    });
+    await dispatch('calendar', 'pm:scheduleCalendarEvents', 'calendarServer', {
+      calendarServer: settings.calendarServer, calendarId: settings.calendarId, token: settings.calendarToken,
+    });
+  }
 
-    // Slack
-    const slackId = this.assetIdMap.get('pm:sendNotifications');
-    if (settings.slackServer && slackItems.length > 0 && slackId) {
-      onStepUpdate('slack', 'running');
-      try {
-        const result = await this.venue.run(slackId, {
-          actions: slackItems,
-          slackServer: settings.slackServer,
-          channel: settings.slackChannel,
-          token: settings.slackToken,
-          notes,
-        });
-        onStepUpdate('slack', 'success', result);
-      } catch (e) {
-        onStepUpdate('slack', 'error', undefined, e instanceof Error ? e.message : String(e));
-      }
-    } else {
-      onStepUpdate('slack', 'skipped');
+  async executeFullWorkflow(notes: string, config: WorkflowConfig): Promise<unknown> {
+    if (!this.venue) {
+      throw new Error('Not connected to venue');
     }
+    return this.venue.run('pm:fullWorkflow', {
+      notes,
+      ...config
+    });
   }
 
   async getDeployedAssets(): Promise<string[]> {

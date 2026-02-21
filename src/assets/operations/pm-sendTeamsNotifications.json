@@ -1,0 +1,59 @@
+{
+  "name": "pm:sendTeamsNotifications",
+  "description": "Send Microsoft Teams channel notifications from action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["teams", "microsoft", "notifications", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='teams'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "teamsServer": { "type": "string", "description": "MCP server URL for Microsoft Teams" },
+        "channel": { "type": "string", "description": "Teams channel name or ID" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "teamsServer", "channel"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Send Teams Messages",
+        "input": {
+          "server": ["input", "teamsServer"],
+          "toolName": ["const", "post_message"],
+          "arguments": {
+            "channel": ["input", "channel"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

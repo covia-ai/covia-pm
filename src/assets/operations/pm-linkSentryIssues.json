@@ -1,0 +1,59 @@
+{
+  "name": "pm:linkSentryIssues",
+  "description": "Create Sentry issues from error-tracking action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["sentry", "errors", "observability", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='sentry'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "sentryServer": { "type": "string", "description": "MCP server URL for Sentry" },
+        "project": { "type": "string", "description": "Sentry project slug" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "sentryServer", "project"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Sentry Issues",
+        "input": {
+          "server": ["input", "sentryServer"],
+          "toolName": ["const", "create_issue"],
+          "arguments": {
+            "project": ["input", "project"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

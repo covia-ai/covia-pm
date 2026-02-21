@@ -1,0 +1,42 @@
+{
+  "name": "pm:fetchFirefliesTranscript",
+  "description": "Fetch a full meeting transcript from Fireflies.ai via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["fireflies", "transcript", "meeting-intelligence", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "callRef": { "type": "string", "description": "Meeting ID or URL" },
+        "server": { "type": "string", "description": "MCP server URL" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["callRef", "server"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "transcript": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Fetch Fireflies Transcript",
+        "input": {
+          "server": ["input", "server"],
+          "toolName": ["const", "get_transcript"],
+          "arguments": { "transcriptId": ["input", "callRef"] },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "transcript": [0, "transcript"],
+      "summary": [0, "summary"]
+    }
+  }
+}

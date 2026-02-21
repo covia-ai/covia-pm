@@ -1,0 +1,59 @@
+{
+  "name": "pm:sendEmailNotifications",
+  "description": "Send email notifications for action items via MCP (SMTP / SendGrid / Resend).",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["email", "notifications", "smtp", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='email'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "emailServer": { "type": "string", "description": "MCP server URL for email (SMTP/SendGrid/Resend)" },
+        "to": { "type": "string", "description": "Recipient email address(es), comma-separated" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "emailServer", "to"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Send Emails",
+        "input": {
+          "server": ["input", "emailServer"],
+          "toolName": ["const", "send_email"],
+          "arguments": {
+            "to": ["input", "to"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

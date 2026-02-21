@@ -1,0 +1,59 @@
+{
+  "name": "pm:scheduleCalendarEvents",
+  "description": "Schedule follow-up calendar events from action items via MCP (Google Calendar).",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["calendar", "google", "events", "scheduling", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='calendar'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "calendarServer": { "type": "string", "description": "MCP server URL for Google Calendar" },
+        "calendarId": { "type": "string", "description": "Google Calendar ID (e.g. 'primary')" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "calendarServer", "calendarId"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Calendar Events",
+        "input": {
+          "server": ["input", "calendarServer"],
+          "toolName": ["const", "create_event"],
+          "arguments": {
+            "calendarId": ["input", "calendarId"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "pm:createPagerDutyIncidents",
+  "description": "Escalate critical blockers to PagerDuty incidents via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["pagerduty", "incidents", "alerting", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='pagerduty'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "pagerdutyServer": { "type": "string", "description": "MCP server URL for PagerDuty" },
+        "serviceId": { "type": "string", "description": "PagerDuty service ID" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "pagerdutyServer", "serviceId"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create PagerDuty Incidents",
+        "input": {
+          "server": ["input", "pagerdutyServer"],
+          "toolName": ["const", "create_incident"],
+          "arguments": {
+            "serviceId": ["input", "serviceId"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

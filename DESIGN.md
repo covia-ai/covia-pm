@@ -1178,9 +1178,9 @@ The platform's MCP adapter architecture makes each new integration a JSON asset 
 
 ---
 
-### Wave 1 — High Coverage (Phase 7)
+### Wave 1 — High Coverage (Phase 7) — COMPLETED
 
-High-impact tools with broad adoption and MCP servers that are either already available or straightforward to build. Targets the majority of engineering teams regardless of stack.
+Wave 1 expanded the platform from 3 to 12 execution targets and added transcript-fetch support for 9 meeting intelligence tools. All 18 new assets are deployed automatically on venue connect.
 
 #### Project Management
 
@@ -1251,9 +1251,81 @@ pm:executeJiraActions / pm:executeGitLabActions / pm:sendTeamsNotifications …
 
 Tools like Fathom and Avoma that already extract action items can optionally short-circuit `pm:analyzeMeeting` and feed directly into the execution layer, reducing LLM calls for structured sources.
 
-**Wave 1 goal:** Cover the majority of engineering teams regardless of whether they use GitHub or GitLab, Slack or Teams, Jira or Linear.
+**Wave 1 deliverables:** 18 new PM assets, 12 execution targets, 9 transcript sources, accordion settings panel, transcript fetch UI, dynamic system prompt, dynamic execution steps.
 
 ---
+
+---
+
+### Phase 7 Implementation Details
+
+#### Data-Driven Integration Registry
+
+A new file `src/config/integrations.ts` is the single source of truth for all integrations. The `SettingsPanel` renders entirely from this config — no integration-specific JSX exists in the component.
+
+```typescript
+export interface Integration {
+  id: string;           // unique; matches ActionTarget or TranscriptSource
+  name: string;
+  description: string;  // shown in collapsed accordion header
+  category: string;     // matches CategoryDef.id
+  icon: string;         // 1–3 char abbreviation for the coloured badge
+  iconColor: string;    // oklch() CSS color for badge background
+  serverKey: keyof PMSettings;  // determines "● Configured" badge
+  fields: IntegrationField[];
+  hidden?: boolean;     // true → not rendered (developer toggle)
+}
+```
+
+| Task | How |
+|------|-----|
+| Add a tool | Append one `Integration` object to `INTEGRATIONS` array |
+| Remove a tool | Delete its entry |
+| Hide without removing | Set `hidden: true` |
+| Recategorize | Change `category` field |
+| Reorder | Move position in array |
+
+#### Accordion Settings Panel
+
+`SettingsPanel.tsx` is fully data-driven. Key sub-components:
+
+- **`CategorySection`** — collapsible section header showing `X / Y configured` counter; starts expanded
+- **`IntegrationAccordion`** — per-tool row with coloured icon badge, name, description, `● Configured` / `○ Not set` status, and expand/collapse chevron. Tools start expanded if they already have a server URL configured.
+
+#### Venue Client Additions
+
+| Method | Description |
+|--------|-------------|
+| `buildTargetMappings(settings?)` | Generates LLM system prompt routing lines for configured targets only |
+| `fetchTranscript(source, callRef, settings)` | Fetches transcript from a meeting intelligence tool via its MCP asset |
+| `executeActions()` refactored | Now uses a `dispatch()` helper; handles all 12 targets |
+
+#### MeetingInput Transcript Fetch
+
+When one or more meeting intelligence server URLs are configured, a fetch row appears above the notes textarea:
+
+```
+[Granola ▼]  [meeting-id-or-url________________]  [Fetch]
+✓ Transcript loaded
+```
+
+On success, the textarea is populated with the returned transcript/summary and analysis proceeds as normal.
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/config/integrations.ts` | **NEW** — integration registry (21 integrations, 8 categories) |
+| `src/types.ts` | Expanded `ActionTarget` (12 values), added `TranscriptSource` (9 values), expanded `PMSettings` (62 fields) |
+| `src/assets/operations/` | 18 new JSON assets (9 execution + 9 fetch) |
+| `src/assets/operations/index.ts` | Registers all 27 assets |
+| `src/lib/venue.ts` | `buildTargetMappings`, `fetchTranscript`, `dispatch` helper, 12-target `executeActions` |
+| `src/hooks/useSettings.ts` | `DEFAULT_SETTINGS` expanded with all new fields |
+| `src/components/SettingsPanel.tsx` | Rewritten — accordion UI driven by config (230 lines vs 687) |
+| `src/components/MeetingInput.tsx` | Added transcript fetch section |
+| `src/App.tsx` | `buildExecutionSteps(settings)`, `availableSources`, `handleFetchTranscript` |
+| `src/index.css` | Accordion styles (category + integration item) |
+
 
 ### Wave 2 — Enterprise Completeness (Phase 8)
 
@@ -1373,7 +1445,7 @@ Beyond individual integrations, several cross-cutting platform capabilities are 
 
 | Capability | Phase | Description |
 |------------|-------|-------------|
-| **Integration registry UI** | 7 | Settings panel lists all available integrations; user enables/disables per venue |
+| **Integration registry UI** | 7 ✅ | Data-driven accordion settings panel; add/hide/remove tools in `src/config/integrations.ts` |
 | **MCP server health checks** | 7 | Ping configured servers on connect; surface failures before execution |
 | **Per-step approval gates** | 8 | Optional human confirmation before destructive actions (e.g. creating incidents) |
 | **Execution history log** | 8 | Persistent log of past executions with results, linked to meeting notes |

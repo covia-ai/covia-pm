@@ -1,0 +1,59 @@
+{
+  "name": "pm:executeLinearActions",
+  "description": "Create Linear issues from action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["linear", "issues", "project-management", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='linear'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "linearServer": { "type": "string", "description": "MCP server URL for Linear" },
+        "teamKey": { "type": "string", "description": "Linear team identifier" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "linearServer", "teamKey"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Linear Issues",
+        "input": {
+          "server": ["input", "linearServer"],
+          "toolName": ["const", "create_issue"],
+          "arguments": {
+            "team": ["input", "teamKey"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

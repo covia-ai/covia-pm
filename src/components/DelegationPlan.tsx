@@ -9,9 +9,18 @@ interface DelegationPlanProps {
 }
 
 const TARGET_CONFIG: Record<ActionTarget, { label: string; icon: string; color: string }> = {
-  jira: { label: 'Jira', icon: 'J', color: 'var(--color-secondary)' },
-  github: { label: 'GitHub', icon: 'G', color: 'var(--color-foreground)' },
-  slack: { label: 'Slack', icon: 'S', color: 'var(--color-accent)' },
+  jira:         { label: 'Jira',         icon: 'J',  color: 'var(--color-secondary)' },
+  linear:       { label: 'Linear',       icon: 'L',  color: 'var(--color-primary)' },
+  'azure-devops':{ label: 'Azure DevOps',icon: 'A',  color: 'var(--color-secondary-light)' },
+  github:       { label: 'GitHub',       icon: 'G',  color: 'var(--color-foreground)' },
+  gitlab:       { label: 'GitLab',       icon: 'GL', color: 'var(--color-warning)' },
+  slack:        { label: 'Slack',        icon: 'S',  color: 'var(--color-accent)' },
+  teams:        { label: 'Teams',        icon: 'T',  color: 'var(--color-secondary)' },
+  email:        { label: 'Email',        icon: 'E',  color: 'var(--color-muted-foreground)' },
+  pagerduty:    { label: 'PagerDuty',    icon: 'P',  color: 'var(--color-error)' },
+  sentry:       { label: 'Sentry',       icon: 'SE', color: 'var(--color-error)' },
+  confluence:   { label: 'Confluence',   icon: 'C',  color: 'var(--color-secondary)' },
+  calendar:     { label: 'Calendar',     icon: 'CA', color: 'var(--color-success)' },
 };
 
 const PRIORITY_CONFIG: Record<Priority, { label: string; className: string }> = {

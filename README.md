@@ -1,14 +1,16 @@
 # Covia PM
 
-Federated AI Project Management frontend for the [Covia Grid](https://www.covia.ai). Coordinates AI agents across Jira, GitHub, and Slack with shared execution state, immutable audit trails, and runtime policy enforcement.
+Federated AI Project Management frontend for the [Covia Grid](https://www.covia.ai). Coordinates AI agents across 12 execution integrations (Jira, Linear, Azure DevOps, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Google Calendar) and 9 meeting intelligence tools (Granola, Fathom, Fireflies, Otter, tl;dv, Avoma, Read.ai, Zoom AI, Teams Meeting), with shared execution state, immutable audit trails, and runtime policy enforcement.
 
 ## Overview
 
 Covia PM is a **self-deploying** React frontend that:
 - Connects to any Covia Grid venue
-- Automatically deploys its PM operations as venue assets
-- Uses LLM-powered meeting analysis to extract action items
-- Delegates actions to Jira, GitHub, and Slack via MCP
+- Automatically deploys 27 PM operations as self-hosted venue assets
+- Fetches transcripts from 9 meeting intelligence tools (Granola, Fathom, Fireflies, etc.)
+- Uses LLM-powered analysis to extract and route action items
+- Delegates actions to 12 integration targets via MCP (Jira, Linear, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Calendar, Azure DevOps)
+- Data-driven accordion settings panel — add new integrations by editing one config file
 
 ## Prerequisites
 
@@ -236,13 +238,38 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 
 **Completed:**
 - ✅ Settings panel (slide-out drawer) for MCP server endpoints
-- ✅ Jira project key, GitHub repo, Slack channel configuration
-- ✅ Auth token fields (Jira, GitHub, Slack) with show/hide toggle
+- ✅ Auth token fields with show/hide toggle
 - ✅ Configuration persistence in localStorage (`covia-pm-settings`)
-
-- ✅ Dark mode toggle (moon/sun icon button in header, persisted in localStorage)
+- ✅ Dark mode toggle (moon/sun icon, persisted in localStorage)
 - ✅ Responsive design (breakpoints at 768px and 480px)
 - ✅ Error boundary (full-page fallback with "Try again" button)
+
+---
+
+### Wave 1 / Phase 7: Expanded Integrations & Accordion Settings - COMPLETED
+
+**What works:**
+- 18 new PM assets deployed automatically on connect (9 execution + 9 transcript-fetch)
+- 12 execution targets: Jira, Linear, Azure DevOps, GitHub, GitLab, Slack, Teams, Email, PagerDuty, Sentry, Confluence, Google Calendar
+- 9 meeting intelligence sources: Granola, Fathom, Fireflies, Otter, tl;dv, Avoma, Read.ai, Zoom AI, Teams Meeting
+- Transcript fetch UI in meeting notes form — select source, enter meeting ID, click Fetch
+- Dynamic system prompt routes LLM to only configured targets
+- Dynamic execution steps — only shows steps for integrations with a server URL configured
+
+**Data-driven integration registry (`src/config/integrations.ts`):**
+
+| Task | How |
+|------|-----|
+| Add a tool | Append one `Integration` object to the `INTEGRATIONS` array |
+| Remove a tool | Delete its entry |
+| Hide without removing | Set `hidden: true` |
+| Recategorize | Change its `category` field |
+
+**Accordion Settings UI:**
+- Categories (Issue Trackers, Version Control, etc.) are collapsible
+- Each tool expands to show its fields; collapses when not in use
+- `● Configured` / `○ Not set` status badge per tool
+- Tools auto-expand on panel open if already configured
 
 ---
 
@@ -268,16 +295,29 @@ Enter the full venue URL (e.g., `https://venue.covia.ai`) and click Connect.
 Configure MCP servers via the ⚙ Settings panel. Values are persisted in `localStorage`:
 
 ```typescript
+// Each integration: server URL + config field(s) + optional auth token
+// Stored in localStorage under 'covia-pm-settings'
 {
-  jiraServer: 'https://jira-mcp.example.com/mcp',
-  githubServer: 'https://github-mcp.example.com/mcp',
-  slackServer: 'https://slack-mcp.example.com/mcp',
-  jiraProjectKey: 'PROJ',
-  githubRepo: 'org/repo',
-  slackChannel: '#updates',
-  jiraToken: '...',
-  githubToken: '...',
-  slackToken: '...'
+  // Issue Trackers
+  jiraServer: 'https://jira-mcp.example.com/mcp', jiraProjectKey: 'PROJ', jiraToken: '...',
+  linearServer: '...', linearTeamKey: 'ENG', linearToken: '...',
+  azureServer: '...', azureOrg: 'myorg', azureProject: 'MyProject', azureToken: '...',
+  // Version Control
+  githubServer: '...', githubRepo: 'org/repo', githubToken: '...',
+  gitlabServer: '...', gitlabRepo: 'group/project', gitlabToken: '...',
+  // Communication
+  slackServer: '...', slackChannel: '#updates', slackToken: '...',
+  teamsServer: '...', teamsChannel: 'General', teamsToken: '...',
+  emailServer: '...', emailTo: 'stakeholders@example.com', emailToken: '...',
+  // Incident / Observability / Docs / Calendar
+  pagerdutyServer: '...', pagerdutyServiceId: 'P123', pagerdutyToken: '...',
+  sentryServer: '...', sentryProject: 'my-project', sentryToken: '...',
+  confluenceServer: '...', confluenceSpaceKey: 'ENG', confluenceToken: '...',
+  calendarServer: '...', calendarId: 'primary', calendarToken: '...',
+  // Meeting Intelligence (server + token per tool)
+  granolaServer: '...', granolaToken: '...',
+  fathomServer: '...', fathomToken: '...',
+  // ... fireflies, otter, tldv, avoma, read, zoom, teamsMeeting
 }
 ```
 
@@ -329,14 +369,17 @@ Configure MCP servers via the ⚙ Settings panel. Values are persisted in `local
 covia-pm/
 ├── src/
 │   ├── assets/
-│   │   └── operations/           # PM asset definitions (JSON)
+│   │   └── operations/           # PM asset definitions (JSON) — 27 assets
 │   │       ├── index.ts          # Asset registry
 │   │       ├── pm-placeholder.json
 │   │       ├── pm-analyzeMeeting.json
 │   │       ├── pm-executeJiraActions.json
 │   │       ├── pm-executeGithubActions.json
 │   │       ├── pm-sendNotifications.json
-│   │       └── pm-fullWorkflow.json
+│   │       ├── pm-fullWorkflow.json
+│   │       └── pm-execute*.json / pm-fetch*.json  # Wave 1 assets (18 files)
+│   ├── config/
+│   │   └── integrations.ts       # Integration registry — add/remove/hide tools here
 │   ├── hooks/
 │   │   ├── useVenue.ts           # React hook for venue connection
 │   │   └── useSettings.ts        # React hook for settings persistence
@@ -345,10 +388,10 @@ covia-pm/
 │   ├── components/
 │   │   ├── index.ts              # Barrel exports
 │   │   ├── ErrorBoundary.tsx     # Full-page render error fallback
-│   │   ├── MeetingInput.tsx      # Meeting notes form
+│   │   ├── MeetingInput.tsx      # Meeting notes form + transcript fetch
 │   │   ├── DelegationPlan.tsx    # Action items display + Execute Plan button
 │   │   ├── ExecutionView.tsx     # Step-by-step execution progress
-│   │   └── SettingsPanel.tsx     # Configuration slide-out drawer
+│   │   └── SettingsPanel.tsx     # Accordion configuration drawer (data-driven)
 │   ├── App.tsx                   # Main application component
 │   ├── main.tsx                  # Entry point
 │   ├── types.ts                  # Shared TypeScript types

@@ -1,0 +1,42 @@
+{
+  "name": "pm:fetchTldvHighlights",
+  "description": "Fetch meeting highlights and summary from tl;dv via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["tldv", "highlights", "meeting-intelligence", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "callRef": { "type": "string", "description": "Meeting ID or URL" },
+        "server": { "type": "string", "description": "MCP server URL" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["callRef", "server"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "transcript": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Fetch tl;dv Highlights",
+        "input": {
+          "server": ["input", "server"],
+          "toolName": ["const", "get_meeting_highlights"],
+          "arguments": { "meetingId": ["input", "callRef"] },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "transcript": [0, "transcript"],
+      "summary": [0, "summary"]
+    }
+  }
+}

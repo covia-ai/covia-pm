@@ -1,0 +1,61 @@
+{
+  "name": "pm:executeGitLabActions",
+  "description": "Create branches and merge requests in GitLab from action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["gitlab", "merge-requests", "branches", "vcs", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='gitlab'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "gitlabServer": { "type": "string", "description": "MCP server URL for GitLab" },
+        "repo": { "type": "string", "description": "GitLab project path (e.g. 'group/project')" },
+        "baseBranch": { "type": "string", "default": "main", "description": "Base branch for new branches" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "gitlabServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Execute GitLab Operations",
+        "input": {
+          "server": ["input", "gitlabServer"],
+          "toolName": ["const", "gitlab_operations"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "baseBranch": ["input", "baseBranch"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

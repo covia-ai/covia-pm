@@ -1,0 +1,61 @@
+{
+  "name": "pm:executeAzureDevOpsActions",
+  "description": "Create Azure DevOps work items from action items via MCP.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-21T00:00:00Z",
+  "keywords": ["azure", "devops", "work-items", "project-management", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Action items filtered to target='azure-devops'",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "azureServer": { "type": "string", "description": "MCP server URL for Azure DevOps" },
+        "org": { "type": "string", "description": "Azure DevOps organisation name" },
+        "project": { "type": "string", "description": "Azure DevOps project name" },
+        "token": { "type": "string", "secret": true }
+      },
+      "required": ["actions", "azureServer", "org", "project"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array" },
+        "summary": { "type": "object" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Azure Work Items",
+        "input": {
+          "server": ["input", "azureServer"],
+          "toolName": ["const", "create_work_item"],
+          "arguments": {
+            "org": ["input", "org"],
+            "project": ["input", "project"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

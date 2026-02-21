@@ -759,11 +759,10 @@ nav a:hover {
 
 .settings-drawer-body {
   flex: 1;
+  min-height: 0;          /* required for overflow-y: auto to work inside a flex column */
   overflow-y: auto;
   padding: var(--spacing-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
+  /* block layout — children stack naturally and never flex-shrink */
 }
 
 .settings-section {
@@ -980,4 +979,252 @@ nav a:hover {
 
 .error-boundary-card p {
   margin-bottom: var(--spacing-lg);
+}
+
+/* Transcript fetch row */
+.transcript-fetch {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-muted);
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.transcript-fetch select {
+  flex-shrink: 0;
+  width: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.transcript-fetch input {
+  flex: 1;
+  min-width: 0;
+}
+
+.transcript-status {
+  font-size: var(--font-size-sm);
+  margin: calc(-1 * var(--spacing-xs)) 0 var(--spacing-sm);
+  padding: 0 var(--spacing-xs);
+}
+
+.transcript-status-ok {
+  color: var(--color-success);
+}
+
+.transcript-status-error {
+  color: var(--color-error);
+}
+
+/* ── Settings: group headings (Execution Integrations / Meeting Intelligence) */
+.settings-group-heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-foreground);
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 2px solid var(--color-border);
+}
+
+/* First group heading has no top margin (drawer padding handles it) */
+.settings-drawer-body > .settings-group-heading:first-child {
+  margin-top: 0;
+}
+
+.settings-group-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted-foreground);
+  margin: 0 0 var(--spacing-sm);
+  line-height: 1.4;
+}
+
+/* ── Category sections (collapsible) */
+.category-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.category-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;  /* override global button justify-content: center */
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.category-header:hover {
+  background: var(--color-border);
+}
+
+.category-label {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.category-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+.category-chevron {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.category-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ── Integration list within an open category */
+.integration-list {
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Individual integration accordion */
+.integration-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.integration-item:last-child {
+  border-bottom: none;
+}
+
+.integration-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;  /* override global button justify-content: center */
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  min-height: 3rem;
+}
+
+.integration-header:hover {
+  background: var(--color-muted);
+}
+
+.integration-item.expanded .integration-header {
+  background: var(--color-card);
+}
+
+/* Icon badge */
+.integration-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  color: oklch(1 0 0);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.integration-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.integration-desc {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: var(--spacing-xs);
+}
+
+.integration-status {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.integration-status.ok {
+  color: var(--color-success);
+}
+
+.integration-chevron {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  transition: transform 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.integration-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Expanded body with fields */
+.integration-body {
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+}
+
+.integration-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Dark mode adjustments for accordion */
+.dark .category-header {
+  background: oklch(0.22 0.02 270);
+}
+
+.dark .category-header:hover {
+  background: oklch(0.25 0.02 270);
+}
+
+.dark .integration-header {
+  background: oklch(0.18 0.02 270);
+}
+
+.dark .integration-header:hover {
+  background: oklch(0.22 0.02 270);
+}
+
+.dark .integration-item.expanded .integration-header {
+  background: oklch(0.20 0.02 270);
+}
+
+.dark .integration-body {
+  background: oklch(0.20 0.02 270);
 }
