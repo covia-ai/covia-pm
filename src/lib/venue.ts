@@ -249,7 +249,7 @@ Respond with JSON only.`;
         decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [],
       };
     } catch (e) {
-      throw new Error(`Failed to parse analysis response: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      throw new Error(`Failed to parse analysis response: ${e instanceof Error ? e.message : 'Unknown error'}`, { cause: e });
     }
   }
 

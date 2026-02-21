@@ -225,7 +225,7 @@ export function SettingsPanel({ isOpen, onClose, settings, onSave }: SettingsPan
   const toggleTool = useCallback((id: string) => {
     setExpandedTools(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   }, []);
