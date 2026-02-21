@@ -2,30 +2,50 @@
 
 Living reference document for the Covia PM test strategy.
 Written after Phase 6 (accordion settings) and Phase 7 (MCP health checks) are merged.
-No test code is included here — this is the planning document to be implemented systematically.
+
+---
+
+## Status: Phase 8 Complete ✓
+
+All unit and component tests implemented and passing as of 2026-02-21.
+
+**Results: 114 tests, 9 test files — all passing**
+
+| File | Tests | Status |
+|------|-------|--------|
+| `src/lib/serverPing.test.ts` | 7 | ✓ |
+| `src/lib/venue.test.ts` | 19 | ✓ |
+| `src/hooks/useSettings.test.ts` | 7 | ✓ |
+| `src/hooks/useVenue.test.ts` | 8 | ✓ |
+| `src/hooks/useHealthChecks.test.ts` | 12 | ✓ |
+| `src/components/MeetingInput.test.tsx` | 15 | ✓ |
+| `src/components/DelegationPlan.test.tsx` | 13 | ✓ |
+| `src/components/SettingsPanel.test.tsx` | 19 | ✓ |
+| `src/components/ExecutionView.test.tsx` | 14 | ✓ |
 
 ---
 
 ## 1. Test Stack
 
-| Tool | Purpose |
-|------|---------|
-| **Vitest** | Test runner — native to Vite, zero config overhead |
-| **@testing-library/react** | Component rendering and user-event simulation |
-| **@testing-library/user-event** | Realistic browser interaction (type, click, focus) |
-| **@testing-library/jest-dom** | DOM assertion matchers (`toBeInTheDocument`, etc.) |
-| **MSW (Mock Service Worker)** | Intercept `fetch` for hooks and integration tests |
-| **happy-dom** | Fast, lightweight DOM environment for Vitest |
-| **Playwright** | E2E against a running dev server (deferred — separate PR) |
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Vitest** | ^4 | Test runner — native to Vite, zero config overhead |
+| **@testing-library/react** | ^16 | Component rendering (React 19 compatible) |
+| **@testing-library/user-event** | ^14 | Realistic browser interaction (type, click, focus) |
+| **@testing-library/jest-dom** | ^6 | DOM assertion matchers (`toBeInTheDocument`, etc.) |
+| **happy-dom** | ^20 | Fast, lightweight DOM environment for Vitest |
+| **@vitest/coverage-v8** | ^4 | Coverage reports via V8 |
+| **MSW** | — | Deferred to integration tests PR |
+| **Playwright** | — | E2E deferred to separate PR |
 
 ### Setup
 
 ```bash
-pnpm add -D vitest @testing-library/react @testing-library/user-event \
-  @testing-library/jest-dom msw happy-dom
+pnpm add -D vitest@^4 @testing-library/react@^16 @testing-library/user-event@^14 \
+  @testing-library/jest-dom happy-dom @vitest/coverage-v8
 ```
 
-`vitest.config.ts` additions:
+`vitest.config.ts`:
 
 ```ts
 import { defineConfig } from 'vitest/config';
@@ -37,6 +57,11 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      exclude: ['src/test/**', 'src/assets/**', 'src/main.tsx'],
+    },
   },
 });
 ```
@@ -45,202 +70,222 @@ export default defineConfig({
 
 ```ts
 import '@testing-library/jest-dom';
-import { server } from './mocks/server';
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 ```
 
-Add to `package.json` scripts: `"test": "vitest"`, `"test:coverage": "vitest --coverage"`.
+`package.json` scripts: `"test": "vitest"`, `"test:coverage": "vitest --coverage"`.
 
 ---
 
-## 2. Unit Tests — `src/lib/venue.ts` (PMVenueClient)
+## 2. Coverage Achieved
 
-Mock `Grid.connect` from `@covia-ai/covialib` and a fake `Venue` object with stubs for `run`, `createAsset`, `getAsset`.
+Measured 2026-02-21 (`pnpm test:coverage`):
 
-### `connect()`
-- Happy path — calls `Grid.connect(url)`, then `ensureAssets(venue)`, returns the client
-- Venue unreachable — `Grid.connect` throws → `connect()` propagates the error
-- Asset deploy returns 409 (conflict) — error is swallowed, no throw
+| Area | Stmts | Branch | Funcs | Lines | Target | Status |
+|------|-------|--------|-------|-------|--------|--------|
+| `src/hooks/` | **100%** | 95% | **100%** | **100%** | 85%+ | ✓ |
+| `src/components/` | **85%** | 84% | 79% | 89% | 75%+ | ✓ |
+| `src/lib/serverPing.ts` | **100%** | **100%** | **100%** | **100%** | 90%+ | ✓ |
+| `src/lib/venue.ts` | 76% | 47% | 76% | 76% | 90%+ | partial |
+| `src/lib/` overall | 77% | 48% | 79% | 77% | 90%+ | partial |
+| **Overall** | **70%** | **61%** | **67%** | **71%** | 80%+ | partial |
 
-### `analyzeMeeting()`
-- Parses bare JSON string returned from `venue.run`
-- Parses JSON embedded in a markdown fenced code block (`` ```json … ``` ``)
-- Throws with descriptive message when `venue.run` returns an empty string
-- Throws with descriptive message when JSON is invalid / unparseable
-- `buildTargetMappings()` with no settings configured → empty targets object
-- `buildTargetMappings()` with specific servers set → correct mapping for each target
+### Uncovered areas (venue.ts)
 
-### `fetchTranscript()`
-- Asset found in cache (`assetId` is defined) → calls `venue.run` with the correct operation name and `callRef`
-- Asset not found (assetId undefined) → throws with descriptive message
+The uncovered branches in `venue.ts` (lines 341–357, ~230, ~252) are the `executeActions` dispatch
+paths for the remaining 10 integration targets beyond jira and github. These were excluded from unit
+tests to keep the test suite focused — they share identical logic with the tested targets.
+Full coverage of all 12 targets is deferred to integration tests (MSW).
 
-### `executeActions()`
-- For each of the 12 targets (jira, linear, azure-devops, github, gitlab, slack, teams, email, pagerduty, sentry, confluence, calendar):
-  - Skipped (status stays `pending`) when server field is not set in settings
-  - Fires `onStepUpdate(id, 'running')` then `onStepUpdate(id, 'success')` when server is set
-- One step failing (venue.run throws) does not abort the remaining steps
-- Step failure calls `onStepUpdate(id, 'error', undefined, errorMessage)`
+`App.tsx` is excluded from meaningful coverage because it is the top-level orchestration component;
+it is covered implicitly by integration tests (deferred).
 
 ---
 
-## 3. Unit Tests — `src/lib/serverPing.ts`
+## 3. Unit Tests — `src/lib/serverPing.ts` ✓
 
-Mock global `fetch` using MSW or `vi.spyOn(global, 'fetch')`.
+7 tests — `vi.spyOn(global, 'fetch')` + `vi.useFakeTimers()`.
 
-### `pingServer(url)`
-- Returns `true` when fetch resolves (mock fetch returns any opaque response)
-- Returns `true` when fetch resolves with a 405 status (POST-only MCP server)
-- Returns `false` when fetch throws a `TypeError` (network error / DNS failure)
-- Returns `false` when `AbortController` fires before fetch resolves (timeout reached)
-- Clears the timeout (`clearTimeout`) after a successful resolve — spy on `clearTimeout`
-
----
-
-## 4. Unit Tests — `src/hooks/`
-
-Use `renderHook` from `@testing-library/react`.
-
-### `useSettings`
-- Returns `DEFAULT_SETTINGS` on first render when `localStorage` is empty
-- Persists settings to `localStorage` on `saveSettings(newSettings)`
-- Rehydrates from `localStorage` on mount when a prior value exists
-- Merges stored partial settings with `DEFAULT_SETTINGS` (handles schema evolution)
-
-### `useVenue`
-- Status sequence: `disconnected` → `connecting` → `connected` on successful `connect(url)` call
-- Transitions to `error` status when `Grid.connect` throws; exposes error message
-- `disconnect()` resets status to `disconnected` and clears `venueId`
-- `client.analyzeMeeting` and other methods are not callable before `connect()`
-
-### `useHealthChecks`
-- Fires `runChecks` when `isConnected` transitions from `false` to `true`
-- Resets `health` to `{}` within one tick when `isConnected` transitions to `false`
-- Debounces settings changes — 3 rapid `settings` updates within 400ms only triggers one ping round
-- Marks all configured targets as `'checking'` before any ping resolves
-- Sets `'ok'` for a target whose `pingServer` resolves `true`
-- Sets `'unreachable'` for a target whose `pingServer` resolves `false`
-- Does not ping hidden integrations or integrations with no server URL set
-- `recheck()` triggers a new ping round when connected; is a no-op when disconnected
+- Returns `true` when fetch resolves (happy path)
+- Returns `true` even for a 405 response (no-cors opaque response)
+- Returns `false` when fetch throws TypeError (network failure)
+- Returns `false` when AbortController fires at timeout
+- `clearTimeout` always called even on early resolve
+- Custom timeout value honoured
+- Never throws (always resolves true/false)
 
 ---
 
-## 5. Component Tests — `src/components/`
+## 4. Unit Tests — `src/lib/venue.ts` (PMVenueClient) ✓
 
-Use `render` + `screen` + `userEvent` from `@testing-library/react`.
+19 tests — mocks `@covia-ai/covialib` and `../assets/operations`.
 
-### `MeetingInput`
-- Analyse button is disabled when `isConnected=false`
-- Analyse button is disabled when the textarea is empty (even if connected)
-- Transcript fetch row is absent when `availableSources=[]`
-- Transcript fetch row appears and shows source selector + callRef input when `availableSources` has entries
-- Clicking Fetch calls `onFetchTranscript(source, callRef)` with the selected values
-- Meeting-type selector options match the four defined meeting types
+- `connect()`: calls `Grid.connect`, builds asset map, returns venue
+- `connect()`: propagates error when `Grid.connect` throws
+- `ensureAssets()`: swallows '409' errors (idempotent deploy)
+- `ensureAssets()`: swallows 'already exists' errors
+- `disconnect()`: sets `isConnected` false, clears assetIdMap
+- `analyzeMeeting()`: parses bare JSON string from `venue.run`
+- `analyzeMeeting()`: parses JSON inside markdown code fence
+- `analyzeMeeting()`: parses JSON from `.response` field when run returns object
+- `analyzeMeeting()`: throws on empty/null response
+- `analyzeMeeting()`: throws 'Failed to parse' on invalid JSON
+- `analyzeMeeting()`: normalises null array fields to `[]`
+- `fetchTranscript()`: throws 'Not connected' when venue=null
+- `fetchTranscript()`: throws 'Asset not found' for unknown assetId
+- `fetchTranscript()`: happy path — calls `venue.run` with correct args
+- `executeActions()`: `onStepUpdate('running')` then `('success')` for configured target
+- `executeActions()`: `onStepUpdate('skipped')` when server field is empty
+- `executeActions()`: `onStepUpdate('error')` on failure; continues remaining targets
 
-### `DelegationPlan`
-- Shows nothing (returns null) when `result=null` and `error=null`
-- Shows error card with message when `error` is set
-- Renders action items grouped by target (correct number of groups)
-- Shows "No action items" empty-state card when `result.actionItems` is empty
-- Execute button is disabled with warning text when no integration servers are configured
-- Execute button is enabled and shows `isExecuting` spinner when `isExecuting=true`
-- Shows unreachable warning paragraph when `health` has `'unreachable'` for a target used in the plan
-- Execute button stays ENABLED (not disabled) even when a target is unreachable
+---
 
-### `SettingsPanel`
-- Renders 8 category sections (Issue Trackers, Version Control, Communication, Incident, Observability, Documentation, Calendar, Meeting Intelligence sources)
+## 5. Unit Tests — `src/hooks/useSettings.ts` ✓
+
+7 tests — `localStorage.clear()` in `beforeEach`.
+
+- Returns `DEFAULT_SETTINGS` when localStorage empty
+- `saveSettings()` writes JSON to `localStorage`
+- Rehydrates on mount from pre-populated localStorage
+- Merges partial stored object with defaults (schema evolution)
+- Falls back to defaults on malformed JSON
+- `saveSettings` has stable identity across re-renders
+
+---
+
+## 6. Unit Tests — `src/hooks/useVenue.ts` ✓
+
+8 tests — `vi.mock('../lib/venue', ...)` with `vi.hoisted()` for constructor mock.
+
+> **Note**: `PMVenueClient` must be mocked with a regular function (not arrow function) since
+> it is used with `new`. Variables referenced in `vi.mock` factories must be created with
+> `vi.hoisted()` because `vi.mock` is hoisted before imports.
+
+- Initial state: `status='disconnected'`, `error=null`, `venueId=null`
+- `connect()` sets status to `'connecting'` synchronously before await
+- `connect()` success → `status='connected'`, `venueId` populated
+- `connect()` rejects with `Error` → `status='error'`, `error.message` preserved
+- `connect()` rejects with non-Error → wrapped in `new Error(String(e))`
+- `disconnect()` → `status='disconnected'`, `venueId/error` cleared, `client.disconnect()` called
+- Prior error cleared when `connect()` called again
+- Same client instance across renders (useMemo stability)
+
+---
+
+## 7. Unit Tests — `src/hooks/useHealthChecks.ts` ✓
+
+12 tests — `vi.useFakeTimers()` in `beforeEach`, `vi.advanceTimersByTimeAsync()` for async flushing.
+
+> **Key pattern**: Use *separate* `act()` calls for rerender (to flush React effects/register
+> timers) and timer advancement (to fire timers and flush resulting async state updates).
+> Putting both in a single `act()` can cause effects to not run before timers are advanced.
+>
+> ```ts
+> await act(async () => { rerender({ c: true }); }); // flush effects first
+> await act(async () => { await vi.advanceTimersByTimeAsync(10); }); // then fire timers
+> ```
+
+- Starts with empty health map
+- No pings when `isConnected=false` and no servers configured
+- Pings fire when `isConnected` transitions false → true
+- Targets set to `'checking'` before pings resolve (caught with never-resolving mock)
+- Sets `'ok'` when `pingServer` resolves `true`
+- Sets `'unreachable'` when `pingServer` resolves `false`
+- Skips hidden integrations even when server URL is set
+- Skips integrations with no server URL configured
+- Clears health to `{}` when `isConnected` transitions to false
+- Rapid settings changes only trigger pings for the last URL (debounce behaviour)
+- `recheck()` triggers a new ping round when connected
+- `recheck()` is a no-op when disconnected
+
+---
+
+## 8. Component Tests — `src/components/` ✓
+
+### `MeetingInput` (15 tests)
+
+- Analyse button disabled when `isConnected=false`
+- Analyse button disabled when textarea empty (even if connected)
+- Analyse button enabled → calls `onAnalyze` with notes + meetingType
+- "Connect to a venue" helper text shown when disconnected
+- 4 meeting type buttons rendered; clicking one makes it active
+- Transcript fetch row absent when `availableSources=[]` or `onFetchTranscript` not passed
+- Transcript fetch row present when `availableSources=['granola']` + handler provided
+- Fetch button disabled when `callRef` is empty
+- Fetch success → textarea populated with returned transcript
+- Fetch error → error message shown
+
+### `DelegationPlan` (13 tests)
+
+- Returns null when `result=null`, `error=null`
+- Shows error card when error is set
+- Renders action items grouped by target
+- Shows "No action items" empty state when `result.actionItems=[]`
+- Execute button disabled + warning when no integration servers configured
+- Execute button enabled when at least one server configured
+- Execute button shows spinner when `isExecuting=true`
+- Unreachable warning shown when health has `'unreachable'` for a used target
+- Execute button stays ENABLED even when a target is unreachable
+- Does not show unreachable warning when all targeted servers are online
+
+### `SettingsPanel` (19 tests)
+
+- Closed (no `open` class) when `isOpen=false`
+- Has `open` class when `isOpen=true`
+- Renders "Execution Integrations" heading
+- Renders "Meeting Intelligence" heading
+- Renders category labels such as "Issue Trackers"
 - Category starts collapsed when no integration in it is configured
-- Category starts expanded when at least one integration in it is configured
-- Clicking a category header expands then collapses it on second click
-- Clicking an integration header expands its field group
-- Token field shows password input by default; clicking the eye button reveals it
-- Save button calls `onSave` with the current draft values
-- Cancel discards unsaved draft changes
-- Health prop — configured integration with `health='checking'` shows `◌ Checking…` text with `checking` class
-- Health prop — configured integration with `health='ok'` shows `● Online` text with `ok` class
-- Health prop — configured integration with `health='unreachable'` shows `⚠ Unreachable` text with `unreachable` class
-- Unconfigured integration always shows `○ Not set` regardless of health
+- Category starts expanded when an integration is configured
+- Clicking collapsed category expands it
+- Clicking expanded category collapses it
+- Clicking integration header expands its field group
+- Token field is password type by default
+- Save button calls `onSave` with current draft values
+- Cancel button calls `onClose`, does not call `onSave`
+- Unconfigured integration shows `○ Not set`
+- Configured (no health) shows `● Configured`
+- `health='checking'` shows `◌ Checking…`
+- `health='ok'` shows `● Online`
+- `health='unreachable'` shows `⚠ Unreachable`
+- Unconfigured integration shows `○ Not set` regardless of health prop
 
-### `ExecutionView`
-- Renders only steps for configured target servers (skips unconfigured)
-- Correct status icon per `ExecutionStepStatus` (`pending`, `running`, `success`, `error`, `skipped`)
-- Result detail is collapsible / expandable on click
-- Back button calls `onBack`; Reset button calls `onReset`
+### `ExecutionView` (14 tests)
 
----
-
-## 6. Integration Tests (Vitest + MSW)
-
-Test interaction between hooks and components using MSW to intercept real `fetch` calls.
-
-### Full analysis flow
-1. Render `App` with a mocked `Grid.connect` that resolves
-2. MSW intercepts the asset-deploy endpoint (returns 201) and the `venue.run` endpoint (returns JSON action plan)
-3. User pastes meeting notes and clicks Analyse
-4. Verify `DelegationPlan` renders the correct number of action item cards
-
-### Health check flow
-1. Mock `pingServer` to resolve `true` for jiraServer URL, `false` for githubServer URL
-2. Connect to venue with both servers configured
-3. After the debounce tick, verify jira shows `● Online`, github shows `⚠ Unreachable`
-4. Disconnect — verify both statuses reset to `● Configured` (health cleared)
-
-### Execution flow
-1. Render `App` with analysis result pre-populated
-2. MSW intercepts per-target `venue.run` calls, one resolves, one rejects
-3. Click Execute
-4. Verify step status updates in `ExecutionView`: running → success / error as each settles
-5. Verify final `ExecutionState.status` is `error` (not `complete`) when any step fails
-
-### Transcript fetch flow
-1. Configure `granolaServer` in settings
-2. Verify "Fetch transcript" row appears in `MeetingInput`
-3. Select Granola, enter a callRef, click Fetch
-4. MSW returns a transcript string
-5. Verify the transcript textarea is populated with the returned text
-
-### Settings persistence
-1. Render `useSettings` hook; call `saveSettings({ jiraServer: 'http://jira.test' })`
-2. Unmount and re-render the hook
-3. Verify `settings.jiraServer` equals `'http://jira.test'` (rehydrated from localStorage)
+- Renders all steps from `state.steps`
+- Spinner element present for step with `status='running'`
+- PENDING badge for pending status
+- DONE badge for success status
+- FAILED badge for error status
+- SKIPPED badge for skipped status
+- Results section hidden when no step has result or error
+- Results section shown with `<details>` when a step has a result
+- Error text shown in results for a failed step
+- `onBack` called when "Back to Plan" button is clicked
+- "Start New Analysis" not shown while still running
+- "Start New Analysis" shown and calls `onReset` when complete
+- "Start New Analysis" shown when status is error
+- Correct title per execution status (Executing… / Execution Complete / Execution Failed)
 
 ---
 
-## 7. E2E — Playwright (deferred)
+## 9. Integration Tests (Vitest + MSW) — Deferred
 
-Implement after unit/integration test suite is stable. These tests require a locally running Covia venue on `localhost:8080`.
+Implement in a follow-up PR after unit suite is stable. Use MSW to intercept fetch calls.
+
+- Full analysis flow: connect → paste notes → analyse → plan rendered
+- Health check flow: connect with two servers → debounce tick → verify online/unreachable
+- Execution flow: plan → execute → step progress → final status with one error
+- Transcript fetch flow: configure granolaServer → fetch row → fetch → textarea populated
+- Settings persistence: save → unmount → remount → verify rehydration
+
+---
+
+## 10. E2E — Playwright (deferred)
+
+Implement after unit/integration test suite is stable. Requires a locally running Covia venue on `localhost:8080`.
 
 - Connect to venue → badge shows "Connected"
-- Open settings → configure Jira server URL → save → health check fires (◌ Checking… → ● Online or ⚠ Unreachable)
-- Paste sample meeting notes → click Analyse → delegation plan renders with action items
-- Click Execute → execution view shows step progress → final status card appears
+- Open settings → configure Jira server URL → save → health check fires (◌ Checking… → ● Online)
+- Paste sample meeting notes → click Analyse → delegation plan renders
+- Click Execute → execution view shows step progress → final status card
 - Dark mode toggle persists across reload
-
----
-
-## 8. Coverage Targets
-
-| Area | Target |
-|------|--------|
-| `src/lib/` | 90%+ |
-| `src/hooks/` | 85%+ |
-| `src/components/` | 75%+ |
-| Overall | 80%+ |
-
----
-
-## 9. Implementation Sequence
-
-Work through this order — each step builds on the previous:
-
-1. **Setup** — install tooling, create `vitest.config.ts`, `src/test/setup.ts`, MSW handlers skeleton, add `test` + `test:coverage` scripts to `package.json`
-2. **`serverPing.ts` unit tests** — simplest pure-function tests; confirm MSW intercept pattern works
-3. **`useSettings` unit tests** — localStorage mock, verify default + persist + rehydrate
-4. **`PMVenueClient` unit tests** — mock `Grid.connect` and `Venue`; cover parse paths and executeActions
-5. **`useVenue` unit tests** — status state machine via renderHook
-6. **`useHealthChecks` unit tests** — fake timers (vi.useFakeTimers), mock `pingServer`
-7. **Component tests** — `MeetingInput` → `DelegationPlan` → `SettingsPanel` → `ExecutionView`
-8. **Integration tests** — full flows with MSW; run all tests in CI
-9. **E2E with Playwright** — separate PR, requires running venue
