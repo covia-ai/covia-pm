@@ -1,0 +1,59 @@
+{
+  "name": "pm:executeBitbucketActions",
+  "description": "Execute Bitbucket-targeted action items by creating branches and pull requests via MCP. Processes action items with target='bitbucket'.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["bitbucket", "pull-requests", "branches", "version-control", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='bitbucket')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "bitbucketServer": { "type": "string", "description": "MCP server URL for Bitbucket integration" },
+        "repo": { "type": "string", "description": "Repository slug (workspace/repo-slug)" },
+        "token": { "type": "string", "secret": true, "description": "Bitbucket app password or token" }
+      },
+      "required": ["actions", "bitbucketServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Bitbucket operation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Execute Bitbucket Actions",
+        "input": {
+          "server": ["input", "bitbucketServer"],
+          "toolName": ["const", "create_pull_request"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

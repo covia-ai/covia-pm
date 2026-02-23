@@ -1,0 +1,59 @@
+{
+  "name": "pm:triggerCircleCIBuilds",
+  "description": "Trigger CircleCI pipeline runs for CI/CD action items via MCP. Processes action items with target='circleci' by dispatching pipeline triggers.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["circleci", "ci-cd", "pipelines", "builds", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='circleci')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "circleciServer": { "type": "string", "description": "MCP server URL for CircleCI integration" },
+        "project": { "type": "string", "description": "CircleCI project slug (vcs-type/org/repo)" },
+        "token": { "type": "string", "secret": true, "description": "CircleCI personal API token" }
+      },
+      "required": ["actions", "circleciServer", "project"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each pipeline trigger" },
+        "summary": { "type": "object", "description": "Summary of triggered pipelines" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Trigger CircleCI Pipelines",
+        "input": {
+          "server": ["input", "circleciServer"],
+          "toolName": ["const", "trigger_pipeline"],
+          "arguments": {
+            "project": ["input", "project"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

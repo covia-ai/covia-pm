@@ -1,15 +1,17 @@
 export type MeetingType = 'standup' | 'planning' | 'retro' | 'ad_hoc';
 
-export type ActionType = 'create_issue' | 'review_pr' | 'create_branch' | 'send_notification';
+export type ActionType = 'create_issue' | 'review_pr' | 'create_branch' | 'send_notification' | 'trigger_pipeline';
 
 export type ActionTarget =
-  | 'jira' | 'linear' | 'azure-devops'   // issue trackers
-  | 'github' | 'gitlab'                   // VCS
-  | 'slack' | 'teams' | 'email'           // communication
-  | 'pagerduty'                           // incident management
-  | 'sentry'                              // observability
-  | 'confluence'                          // documentation
-  | 'calendar';                           // scheduling
+  | 'jira' | 'linear' | 'azure-devops' | 'asana' | 'shortcut'   // issue trackers
+  | 'github' | 'gitlab' | 'bitbucket' | 'azure-repos'            // VCS
+  | 'github-actions' | 'gitlab-ci' | 'jenkins' | 'circleci'      // CI/CD
+  | 'slack' | 'teams' | 'email' | 'google-chat' | 'discord'      // communication
+  | 'pagerduty'                                                    // incident management
+  | 'sentry' | 'datadog' | 'grafana'                              // observability
+  | 'snyk' | 'sonarqube' | 'github-security'                      // security
+  | 'confluence'                                                   // documentation
+  | 'calendar' | 'outlook';                                        // scheduling
 
 export type TranscriptSource =
   | 'granola' | 'fathom' | 'fireflies' | 'otter'
@@ -112,6 +114,68 @@ export interface PMSettings {
   calendarServer: string;
   calendarId: string;
   calendarToken: string;
+
+  // ── Wave 2 — Issue Trackers ────────────────────────────────────────
+  asanaServer: string;
+  asanaProjectId: string;
+  asanaToken: string;
+  shortcutServer: string;
+  shortcutTeamId: string;
+  shortcutToken: string;
+
+  // ── Wave 2 — Version Control ──────────────────────────────────────
+  bitbucketServer: string;
+  bitbucketRepo: string;
+  bitbucketToken: string;
+  azureReposServer: string;
+  azureReposProject: string;
+  azureReposToken: string;
+
+  // ── Wave 2 — CI/CD ────────────────────────────────────────────────
+  githubActionsServer: string;
+  githubActionsRepo: string;
+  githubActionsToken: string;
+  gitlabCIServer: string;
+  gitlabCIRepo: string;
+  gitlabCIToken: string;
+  jenkinsServer: string;
+  jenkinsJob: string;
+  jenkinsToken: string;
+  circleciServer: string;
+  circleciProject: string;
+  circleciToken: string;
+
+  // ── Wave 2 — Observability ────────────────────────────────────────
+  datadogServer: string;
+  datadogDashboard: string;
+  datadogToken: string;
+  grafanaServer: string;
+  grafanaDashboard: string;
+  grafanaToken: string;
+
+  // ── Wave 2 — Security ─────────────────────────────────────────────
+  snykServer: string;
+  snykProject: string;
+  snykToken: string;
+  sonarServer: string;
+  sonarProject: string;
+  sonarToken: string;
+  ghsecServer: string;
+  ghsecRepo: string;
+  ghsecToken: string;
+
+  // ── Wave 2 — Communication ────────────────────────────────────────
+  googleChatServer: string;
+  googleChatSpace: string;
+  googleChatToken: string;
+  discordServer: string;
+  discordChannel: string;
+  discordToken: string;
+
+  // ── Wave 2 — Scheduling ───────────────────────────────────────────
+  outlookServer: string;
+  outlookCalendar: string;
+  outlookToken: string;
 
   // ── Meeting Intelligence (one MCP server + token per tool) ─────────
   granolaServer: string;

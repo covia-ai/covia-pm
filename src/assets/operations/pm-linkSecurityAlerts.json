@@ -1,0 +1,59 @@
+{
+  "name": "pm:linkSecurityAlerts",
+  "description": "Link GitHub Advanced Security alerts to tracked action items via MCP. Processes action items with target='github-security' by creating issues from code scanning and Dependabot alerts.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["github-security", "code-scanning", "dependabot", "security", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='github-security')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "ghsecServer": { "type": "string", "description": "MCP server URL for GitHub Advanced Security integration" },
+        "repo": { "type": "string", "description": "Repository (owner/repo)" },
+        "token": { "type": "string", "secret": true, "description": "GitHub personal access token with security_events scope" }
+      },
+      "required": ["actions", "ghsecServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each security alert operation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Link Security Alerts",
+        "input": {
+          "server": ["input", "ghsecServer"],
+          "toolName": ["const", "link_security_alert"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

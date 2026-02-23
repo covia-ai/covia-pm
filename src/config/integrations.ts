@@ -43,9 +43,11 @@ export interface CategoryDef {
 export const CATEGORIES: CategoryDef[] = [
   { id: 'issue-trackers',  label: 'Issue Trackers',       group: 'execution' },
   { id: 'vcs',             label: 'Version Control',       group: 'execution' },
+  { id: 'cicd',            label: 'CI / CD',               group: 'execution' },
   { id: 'communication',   label: 'Communication',         group: 'execution' },
   { id: 'incident',        label: 'Incident Management',   group: 'execution' },
   { id: 'observability',   label: 'Observability',         group: 'execution' },
+  { id: 'security',        label: 'Security & Quality',    group: 'execution' },
   { id: 'documentation',   label: 'Documentation',         group: 'execution' },
   { id: 'calendar',        label: 'Calendar',              group: 'execution' },
   { id: 'meeting-tools',   label: 'Meeting Tools',         group: 'intelligence' },
@@ -249,6 +251,260 @@ export const INTEGRATIONS: Integration[] = [
       { key: 'calendarServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://calendar-mcp.example.com/mcp' },
       { key: 'calendarId',     label: 'Calendar ID',    type: 'text',  placeholder: 'primary' },
       { key: 'calendarToken',  label: 'Auth Token',     type: 'token', placeholder: 'Optional auth token' },
+    ],
+  },
+
+  // ── Wave 2 — Issue Trackers ──────────────────────────────────────────
+
+  {
+    id: 'asana',
+    name: 'Asana',
+    description: 'Tasks & project management',
+    category: 'issue-trackers',
+    icon: 'As',
+    iconColor: 'oklch(0.55 0.15 30)',
+    serverKey: 'asanaServer',
+    fields: [
+      { key: 'asanaServer',    label: 'MCP Server URL', type: 'url',   placeholder: 'https://asana-mcp.example.com/mcp' },
+      { key: 'asanaProjectId', label: 'Project GID',    type: 'text',  placeholder: 'e.g. 1234567890' },
+      { key: 'asanaToken',     label: 'Access Token',   type: 'token', placeholder: 'Personal access token' },
+    ],
+  },
+
+  {
+    id: 'shortcut',
+    name: 'Shortcut',
+    description: 'Stories & epics for engineering teams',
+    category: 'issue-trackers',
+    icon: 'Sc',
+    iconColor: 'oklch(0.50 0.18 295)',
+    serverKey: 'shortcutServer',
+    fields: [
+      { key: 'shortcutServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://shortcut-mcp.example.com/mcp' },
+      { key: 'shortcutTeamId', label: 'Team ID',        type: 'text',  placeholder: 'e.g. team-id' },
+      { key: 'shortcutToken',  label: 'API Token',      type: 'token', placeholder: 'Shortcut API token' },
+    ],
+  },
+
+  // ── Wave 2 — Version Control ──────────────────────────────────────────
+
+  {
+    id: 'bitbucket',
+    name: 'Bitbucket',
+    description: 'PRs & branches (Atlassian stack)',
+    category: 'vcs',
+    icon: 'Bb',
+    iconColor: 'oklch(0.48 0.18 255)',
+    serverKey: 'bitbucketServer',
+    fields: [
+      { key: 'bitbucketServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://bitbucket-mcp.example.com/mcp' },
+      { key: 'bitbucketRepo',   label: 'Repository',     type: 'text',  placeholder: 'workspace/repo-slug' },
+      { key: 'bitbucketToken',  label: 'App Password',   type: 'token', placeholder: 'Bitbucket app password' },
+    ],
+  },
+
+  {
+    id: 'azure-repos',
+    name: 'Azure Repos',
+    description: 'PRs & branch policies in Azure DevOps',
+    category: 'vcs',
+    icon: 'AR',
+    iconColor: 'oklch(0.48 0.14 250)',
+    serverKey: 'azureReposServer',
+    fields: [
+      { key: 'azureReposServer',  label: 'MCP Server URL', type: 'url',   placeholder: 'https://azure-repos-mcp.example.com/mcp' },
+      { key: 'azureReposProject', label: 'Project',        type: 'text',  placeholder: 'e.g. MyProject' },
+      { key: 'azureReposToken',   label: 'PAT',            type: 'token', placeholder: 'Personal access token' },
+    ],
+  },
+
+  // ── Wave 2 — CI/CD ────────────────────────────────────────────────────
+
+  {
+    id: 'github-actions',
+    name: 'GitHub Actions',
+    description: 'Trigger workflow runs',
+    category: 'cicd',
+    icon: 'GA',
+    iconColor: 'oklch(0.30 0.02 260)',
+    serverKey: 'githubActionsServer',
+    fields: [
+      { key: 'githubActionsServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://gh-actions-mcp.example.com/mcp' },
+      { key: 'githubActionsRepo',   label: 'Repository',     type: 'text',  placeholder: 'owner/repo' },
+      { key: 'githubActionsToken',  label: 'Auth Token',     type: 'token', placeholder: 'ghp_...' },
+    ],
+  },
+
+  {
+    id: 'gitlab-ci',
+    name: 'GitLab CI',
+    description: 'Trigger pipeline runs',
+    category: 'cicd',
+    icon: 'GC',
+    iconColor: 'oklch(0.60 0.17 45)',
+    serverKey: 'gitlabCIServer',
+    fields: [
+      { key: 'gitlabCIServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://gitlab-ci-mcp.example.com/mcp' },
+      { key: 'gitlabCIRepo',   label: 'Project Path',   type: 'text',  placeholder: 'group/project' },
+      { key: 'gitlabCIToken',  label: 'Access Token',   type: 'token', placeholder: 'glpat-...' },
+    ],
+  },
+
+  {
+    id: 'jenkins',
+    name: 'Jenkins',
+    description: 'Trigger & monitor build jobs',
+    category: 'cicd',
+    icon: 'Jk',
+    iconColor: 'oklch(0.50 0.12 50)',
+    serverKey: 'jenkinsServer',
+    fields: [
+      { key: 'jenkinsServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://jenkins-mcp.example.com/mcp' },
+      { key: 'jenkinsJob',    label: 'Job Name',       type: 'text',  placeholder: 'e.g. my-pipeline' },
+      { key: 'jenkinsToken',  label: 'API Token',      type: 'token', placeholder: 'Jenkins API token' },
+    ],
+  },
+
+  {
+    id: 'circleci',
+    name: 'CircleCI',
+    description: 'Trigger pipeline runs',
+    category: 'cicd',
+    icon: 'CC',
+    iconColor: 'oklch(0.52 0.14 145)',
+    serverKey: 'circleciServer',
+    fields: [
+      { key: 'circleciServer',  label: 'MCP Server URL', type: 'url',   placeholder: 'https://circleci-mcp.example.com/mcp' },
+      { key: 'circleciProject', label: 'Project Slug',   type: 'text',  placeholder: 'gh/org/repo' },
+      { key: 'circleciToken',   label: 'API Token',      type: 'token', placeholder: 'Personal API token' },
+    ],
+  },
+
+  // ── Wave 2 — Observability ────────────────────────────────────────────
+
+  {
+    id: 'datadog',
+    name: 'Datadog',
+    description: 'Monitors, alerts & dashboards',
+    category: 'observability',
+    icon: 'DD',
+    iconColor: 'oklch(0.55 0.16 60)',
+    serverKey: 'datadogServer',
+    fields: [
+      { key: 'datadogServer',    label: 'MCP Server URL', type: 'url',   placeholder: 'https://datadog-mcp.example.com/mcp' },
+      { key: 'datadogDashboard', label: 'Dashboard ID',   type: 'text',  placeholder: 'Optional dashboard ID' },
+      { key: 'datadogToken',     label: 'API Key',        type: 'token', placeholder: 'Datadog API key' },
+    ],
+  },
+
+  {
+    id: 'grafana',
+    name: 'Grafana',
+    description: 'Dashboard snapshots & metric context',
+    category: 'observability',
+    icon: 'Gf',
+    iconColor: 'oklch(0.58 0.16 35)',
+    serverKey: 'grafanaServer',
+    fields: [
+      { key: 'grafanaServer',    label: 'MCP Server URL', type: 'url',   placeholder: 'https://grafana-mcp.example.com/mcp' },
+      { key: 'grafanaDashboard', label: 'Dashboard UID',  type: 'text',  placeholder: 'Optional dashboard UID' },
+      { key: 'grafanaToken',     label: 'Service Token',  type: 'token', placeholder: 'Grafana service account token' },
+    ],
+  },
+
+  // ── Wave 2 — Security & Quality ───────────────────────────────────────
+
+  {
+    id: 'snyk',
+    name: 'Snyk',
+    description: 'Vulnerability scanning & dependency security',
+    category: 'security',
+    icon: 'Sn',
+    iconColor: 'oklch(0.50 0.20 145)',
+    serverKey: 'snykServer',
+    fields: [
+      { key: 'snykServer',  label: 'MCP Server URL', type: 'url',   placeholder: 'https://snyk-mcp.example.com/mcp' },
+      { key: 'snykProject', label: 'Project ID',     type: 'text',  placeholder: 'Snyk project ID or slug' },
+      { key: 'snykToken',   label: 'API Token',      type: 'token', placeholder: 'Snyk API token' },
+    ],
+  },
+
+  {
+    id: 'sonarqube',
+    name: 'SonarQube',
+    description: 'Code quality gates & static analysis',
+    category: 'security',
+    icon: 'SQ',
+    iconColor: 'oklch(0.52 0.14 220)',
+    serverKey: 'sonarServer',
+    fields: [
+      { key: 'sonarServer',  label: 'MCP Server URL', type: 'url',   placeholder: 'https://sonar-mcp.example.com/mcp' },
+      { key: 'sonarProject', label: 'Project Key',    type: 'text',  placeholder: 'e.g. my-project' },
+      { key: 'sonarToken',   label: 'User Token',     type: 'token', placeholder: 'SonarQube user token' },
+    ],
+  },
+
+  {
+    id: 'github-security',
+    name: 'GitHub Security',
+    description: 'Advanced Security, Dependabot & code scanning',
+    category: 'security',
+    icon: 'GS',
+    iconColor: 'oklch(0.35 0.05 260)',
+    serverKey: 'ghsecServer',
+    fields: [
+      { key: 'ghsecServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://ghsec-mcp.example.com/mcp' },
+      { key: 'ghsecRepo',   label: 'Repository',     type: 'text',  placeholder: 'owner/repo' },
+      { key: 'ghsecToken',  label: 'Auth Token',     type: 'token', placeholder: 'ghp_... (security_events scope)' },
+    ],
+  },
+
+  // ── Wave 2 — Communication ────────────────────────────────────────────
+
+  {
+    id: 'google-chat',
+    name: 'Google Chat',
+    description: 'Google Workspace team messages',
+    category: 'communication',
+    icon: 'GC',
+    iconColor: 'oklch(0.55 0.18 140)',
+    serverKey: 'googleChatServer',
+    fields: [
+      { key: 'googleChatServer', label: 'MCP Server URL', type: 'url',   placeholder: 'https://gchat-mcp.example.com/mcp' },
+      { key: 'googleChatSpace',  label: 'Space Name/ID',  type: 'text',  placeholder: 'spaces/XXXXXX' },
+      { key: 'googleChatToken',  label: 'Auth Token',     type: 'token', placeholder: 'Service account or OAuth token' },
+    ],
+  },
+
+  {
+    id: 'discord',
+    name: 'Discord',
+    description: 'Developer communities & team servers',
+    category: 'communication',
+    icon: 'Di',
+    iconColor: 'oklch(0.52 0.20 280)',
+    serverKey: 'discordServer',
+    fields: [
+      { key: 'discordServer',  label: 'MCP Server URL', type: 'url',   placeholder: 'https://discord-mcp.example.com/mcp' },
+      { key: 'discordChannel', label: 'Channel',        type: 'text',  placeholder: 'channel-name or ID' },
+      { key: 'discordToken',   label: 'Bot Token',      type: 'token', placeholder: 'Discord bot token' },
+    ],
+  },
+
+  // ── Wave 2 — Scheduling ───────────────────────────────────────────────
+
+  {
+    id: 'outlook',
+    name: 'Outlook / M365',
+    description: 'Microsoft 365 calendar follow-ups',
+    category: 'calendar',
+    icon: 'Ou',
+    iconColor: 'oklch(0.48 0.16 255)',
+    serverKey: 'outlookServer',
+    fields: [
+      { key: 'outlookServer',   label: 'MCP Server URL', type: 'url',   placeholder: 'https://outlook-mcp.example.com/mcp' },
+      { key: 'outlookCalendar', label: 'Calendar ID',    type: 'text',  placeholder: 'user@org.com or primary' },
+      { key: 'outlookToken',    label: 'Graph API Token',type: 'token', placeholder: 'Microsoft Graph OAuth token' },
     ],
   },
 

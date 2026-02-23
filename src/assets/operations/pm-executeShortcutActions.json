@@ -1,0 +1,59 @@
+{
+  "name": "pm:executeShortcutActions",
+  "description": "Execute Shortcut-targeted action items by creating stories via MCP. Processes action items with target='shortcut' and creates corresponding Shortcut stories.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["shortcut", "stories", "project-management", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='shortcut')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "shortcutServer": { "type": "string", "description": "MCP server URL for Shortcut integration" },
+        "teamId": { "type": "string", "description": "Shortcut team ID to create stories in" },
+        "token": { "type": "string", "secret": true, "description": "Shortcut API token" }
+      },
+      "required": ["actions", "shortcutServer", "teamId"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Shortcut story creation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Shortcut Stories",
+        "input": {
+          "server": ["input", "shortcutServer"],
+          "toolName": ["const", "create_story"],
+          "arguments": {
+            "team": ["input", "teamId"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

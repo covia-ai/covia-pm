@@ -146,10 +146,42 @@ export class PMVenueClient {
       lines.push('- Critical blockers, production incidents → target: "pagerduty", type: "create_issue"');
     if (settings?.sentryServer)
       lines.push('- Error tracking, bug reports from monitoring → target: "sentry", type: "create_issue"');
+    if (settings?.datadogServer)
+      lines.push('- Datadog monitor or alert actions → target: "datadog", type: "create_issue"');
+    if (settings?.grafanaServer)
+      lines.push('- Grafana dashboard or metrics actions → target: "grafana", type: "create_issue"');
+    if (settings?.snykServer)
+      lines.push('- Security vulnerabilities, dependency issues → target: "snyk", type: "create_issue"');
+    if (settings?.sonarServer)
+      lines.push('- Code quality gate failures, static analysis → target: "sonarqube", type: "create_issue"');
+    if (settings?.ghsecServer)
+      lines.push('- GitHub security alerts, Dependabot → target: "github-security", type: "create_issue"');
+    if (settings?.asanaServer)
+      lines.push('- Asana tasks → target: "asana", type: "create_issue"');
+    if (settings?.shortcutServer)
+      lines.push('- Shortcut stories → target: "shortcut", type: "create_issue"');
+    if (settings?.bitbucketServer)
+      lines.push('- Bitbucket pull requests, branches → target: "bitbucket", type: "review_pr"');
+    if (settings?.azureReposServer)
+      lines.push('- Azure Repos pull requests → target: "azure-repos", type: "review_pr"');
+    if (settings?.githubActionsServer)
+      lines.push('- GitHub Actions workflow triggers → target: "github-actions", type: "trigger_pipeline"');
+    if (settings?.gitlabCIServer)
+      lines.push('- GitLab CI pipeline triggers → target: "gitlab-ci", type: "trigger_pipeline"');
+    if (settings?.jenkinsServer)
+      lines.push('- Jenkins build triggers → target: "jenkins", type: "trigger_pipeline"');
+    if (settings?.circleciServer)
+      lines.push('- CircleCI pipeline triggers → target: "circleci", type: "trigger_pipeline"');
+    if (settings?.googleChatServer)
+      lines.push('- Google Chat messages → target: "google-chat", type: "send_notification"');
+    if (settings?.discordServer)
+      lines.push('- Discord channel messages → target: "discord", type: "send_notification"');
     if (settings?.confluenceServer)
       lines.push('- Documentation tasks, decisions to document → target: "confluence", type: "create_issue"');
     if (settings?.calendarServer)
-      lines.push('- Follow-up meetings, scheduled deadlines → target: "calendar", type: "send_notification"');
+      lines.push('- Google Calendar follow-up meetings → target: "calendar", type: "send_notification"');
+    if (settings?.outlookServer)
+      lines.push('- Outlook / M365 calendar follow-up meetings → target: "outlook", type: "send_notification"');
 
     return lines.join('\n');
   }
@@ -179,8 +211,24 @@ export class PMVenueClient {
           settings.emailServer && 'email',
           settings.pagerdutyServer && 'pagerduty',
           settings.sentryServer && 'sentry',
+          settings.datadogServer && 'datadog',
+          settings.grafanaServer && 'grafana',
+          settings.snykServer && 'snyk',
+          settings.sonarServer && 'sonarqube',
+          settings.ghsecServer && 'github-security',
+          settings.asanaServer && 'asana',
+          settings.shortcutServer && 'shortcut',
+          settings.bitbucketServer && 'bitbucket',
+          settings.azureReposServer && 'azure-repos',
+          settings.githubActionsServer && 'github-actions',
+          settings.gitlabCIServer && 'gitlab-ci',
+          settings.jenkinsServer && 'jenkins',
+          settings.circleciServer && 'circleci',
+          settings.googleChatServer && 'google-chat',
+          settings.discordServer && 'discord',
           settings.confluenceServer && 'confluence',
           settings.calendarServer && 'calendar',
+          settings.outlookServer && 'outlook',
         ].filter(Boolean).join(' | ')
       : '"jira" | "github" | "slack"';
 
@@ -334,6 +382,68 @@ Respond with JSON only.`;
     });
     await dispatch('calendar', 'pm:scheduleCalendarEvents', 'calendarServer', {
       calendarServer: settings.calendarServer, calendarId: settings.calendarId, token: settings.calendarToken,
+    });
+
+    // Wave 2 — Issue Trackers
+    await dispatch('asana', 'pm:executeAsanaActions', 'asanaServer', {
+      asanaServer: settings.asanaServer, projectId: settings.asanaProjectId, token: settings.asanaToken,
+    });
+    await dispatch('shortcut', 'pm:executeShortcutActions', 'shortcutServer', {
+      shortcutServer: settings.shortcutServer, teamId: settings.shortcutTeamId, token: settings.shortcutToken,
+    });
+
+    // Wave 2 — VCS
+    await dispatch('bitbucket', 'pm:executeBitbucketActions', 'bitbucketServer', {
+      bitbucketServer: settings.bitbucketServer, repo: settings.bitbucketRepo, token: settings.bitbucketToken,
+    });
+    await dispatch('azure-repos', 'pm:executeAzureReposActions', 'azureReposServer', {
+      azureReposServer: settings.azureReposServer, project: settings.azureReposProject, token: settings.azureReposToken,
+    });
+
+    // Wave 2 — CI/CD
+    await dispatch('github-actions', 'pm:triggerGitHubWorkflows', 'githubActionsServer', {
+      githubActionsServer: settings.githubActionsServer, repo: settings.githubActionsRepo, token: settings.githubActionsToken,
+    });
+    await dispatch('gitlab-ci', 'pm:triggerGitLabPipelines', 'gitlabCIServer', {
+      gitlabCIServer: settings.gitlabCIServer, repo: settings.gitlabCIRepo, token: settings.gitlabCIToken,
+    });
+    await dispatch('jenkins', 'pm:triggerJenkinsBuilds', 'jenkinsServer', {
+      jenkinsServer: settings.jenkinsServer, jobName: settings.jenkinsJob, token: settings.jenkinsToken,
+    });
+    await dispatch('circleci', 'pm:triggerCircleCIBuilds', 'circleciServer', {
+      circleciServer: settings.circleciServer, project: settings.circleciProject, token: settings.circleciToken,
+    });
+
+    // Wave 2 — Observability
+    await dispatch('datadog', 'pm:linkDatadogMonitors', 'datadogServer', {
+      datadogServer: settings.datadogServer, dashboard: settings.datadogDashboard, token: settings.datadogToken,
+    });
+    await dispatch('grafana', 'pm:embedGrafanaDashboards', 'grafanaServer', {
+      grafanaServer: settings.grafanaServer, dashboard: settings.grafanaDashboard, token: settings.grafanaToken,
+    });
+
+    // Wave 2 — Security
+    await dispatch('snyk', 'pm:createSnykIssues', 'snykServer', {
+      snykServer: settings.snykServer, project: settings.snykProject, token: settings.snykToken,
+    });
+    await dispatch('sonarqube', 'pm:linkSonarQubeGates', 'sonarServer', {
+      sonarServer: settings.sonarServer, project: settings.sonarProject, token: settings.sonarToken,
+    });
+    await dispatch('github-security', 'pm:linkSecurityAlerts', 'ghsecServer', {
+      ghsecServer: settings.ghsecServer, repo: settings.ghsecRepo, token: settings.ghsecToken,
+    });
+
+    // Wave 2 — Communication
+    await dispatch('google-chat', 'pm:sendGoogleChatNotifications', 'googleChatServer', {
+      googleChatServer: settings.googleChatServer, space: settings.googleChatSpace, token: settings.googleChatToken,
+    });
+    await dispatch('discord', 'pm:sendDiscordNotifications', 'discordServer', {
+      discordServer: settings.discordServer, channel: settings.discordChannel, token: settings.discordToken,
+    });
+
+    // Wave 2 — Scheduling
+    await dispatch('outlook', 'pm:scheduleOutlookEvents', 'outlookServer', {
+      outlookServer: settings.outlookServer, calendar: settings.outlookCalendar, token: settings.outlookToken,
     });
   }
 

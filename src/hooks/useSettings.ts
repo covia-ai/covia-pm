@@ -49,6 +49,29 @@ const DEFAULT_SETTINGS: PMSettings = {
   calendarServer: '',
   calendarId: '',
   calendarToken: '',
+  // Wave 2 — Issue Trackers
+  asanaServer: '', asanaProjectId: '', asanaToken: '',
+  shortcutServer: '', shortcutTeamId: '', shortcutToken: '',
+  // Wave 2 — VCS
+  bitbucketServer: '', bitbucketRepo: '', bitbucketToken: '',
+  azureReposServer: '', azureReposProject: '', azureReposToken: '',
+  // Wave 2 — CI/CD
+  githubActionsServer: '', githubActionsRepo: '', githubActionsToken: '',
+  gitlabCIServer: '', gitlabCIRepo: '', gitlabCIToken: '',
+  jenkinsServer: '', jenkinsJob: '', jenkinsToken: '',
+  circleciServer: '', circleciProject: '', circleciToken: '',
+  // Wave 2 — Observability
+  datadogServer: '', datadogDashboard: '', datadogToken: '',
+  grafanaServer: '', grafanaDashboard: '', grafanaToken: '',
+  // Wave 2 — Security
+  snykServer: '', snykProject: '', snykToken: '',
+  sonarServer: '', sonarProject: '', sonarToken: '',
+  ghsecServer: '', ghsecRepo: '', ghsecToken: '',
+  // Wave 2 — Communication
+  googleChatServer: '', googleChatSpace: '', googleChatToken: '',
+  discordServer: '', discordChannel: '', discordToken: '',
+  // Wave 2 — Scheduling
+  outlookServer: '', outlookCalendar: '', outlookToken: '',
   // Meeting Intelligence
   granolaServer: '',
   granolaToken: '',

@@ -1,0 +1,59 @@
+{
+  "name": "pm:triggerGitLabPipelines",
+  "description": "Trigger GitLab CI pipelines for CI/CD action items via MCP. Processes action items with target='gitlab-ci' by dispatching pipeline runs.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["gitlab-ci", "ci-cd", "pipelines", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='gitlab-ci')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "gitlabCIServer": { "type": "string", "description": "MCP server URL for GitLab CI integration" },
+        "repo": { "type": "string", "description": "GitLab project path (group/project)" },
+        "token": { "type": "string", "secret": true, "description": "GitLab personal access token" }
+      },
+      "required": ["actions", "gitlabCIServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each pipeline trigger" },
+        "summary": { "type": "object", "description": "Summary of triggered pipelines" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Trigger GitLab Pipelines",
+        "input": {
+          "server": ["input", "gitlabCIServer"],
+          "toolName": ["const", "trigger_pipeline"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "pm:executeAsanaActions",
+  "description": "Execute Asana-targeted action items by creating tasks via MCP. Processes action items with target='asana' and creates corresponding Asana tasks in the configured project.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["asana", "tasks", "project-management", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='asana')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "asanaServer": { "type": "string", "description": "MCP server URL for Asana integration" },
+        "projectId": { "type": "string", "description": "Asana project GID to create tasks in" },
+        "token": { "type": "string", "secret": true, "description": "Asana personal access token" }
+      },
+      "required": ["actions", "asanaServer", "projectId"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Asana task creation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Asana Tasks",
+        "input": {
+          "server": ["input", "asanaServer"],
+          "toolName": ["const", "create_task"],
+          "arguments": {
+            "project": ["input", "projectId"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

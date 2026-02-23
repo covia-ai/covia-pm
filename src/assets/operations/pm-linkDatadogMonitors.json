@@ -1,0 +1,59 @@
+{
+  "name": "pm:linkDatadogMonitors",
+  "description": "Link Datadog monitors and create observability action items via MCP. Processes action items with target='datadog' by attaching monitors to tracked issues.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["datadog", "observability", "monitors", "alerts", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='datadog')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "datadogServer": { "type": "string", "description": "MCP server URL for Datadog integration" },
+        "dashboard": { "type": "string", "description": "Datadog dashboard or monitor ID to link" },
+        "token": { "type": "string", "secret": true, "description": "Datadog API key" }
+      },
+      "required": ["actions", "datadogServer"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Datadog operation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Link Datadog Monitors",
+        "input": {
+          "server": ["input", "datadogServer"],
+          "toolName": ["const", "create_monitor"],
+          "arguments": {
+            "dashboard": ["input", "dashboard"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

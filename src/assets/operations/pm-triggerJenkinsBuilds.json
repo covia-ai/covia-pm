@@ -1,0 +1,59 @@
+{
+  "name": "pm:triggerJenkinsBuilds",
+  "description": "Trigger Jenkins build jobs for CI/CD action items via MCP. Processes action items with target='jenkins' by initiating build jobs.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["jenkins", "ci-cd", "builds", "pipelines", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='jenkins')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "jenkinsServer": { "type": "string", "description": "MCP server URL for Jenkins integration" },
+        "jobName": { "type": "string", "description": "Jenkins job name to trigger" },
+        "token": { "type": "string", "secret": true, "description": "Jenkins API token" }
+      },
+      "required": ["actions", "jenkinsServer", "jobName"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each build trigger" },
+        "summary": { "type": "object", "description": "Summary of triggered builds" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Trigger Jenkins Builds",
+        "input": {
+          "server": ["input", "jenkinsServer"],
+          "toolName": ["const", "trigger_build"],
+          "arguments": {
+            "job": ["input", "jobName"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

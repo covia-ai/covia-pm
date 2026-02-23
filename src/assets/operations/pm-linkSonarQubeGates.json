@@ -1,0 +1,59 @@
+{
+  "name": "pm:linkSonarQubeGates",
+  "description": "Link SonarQube quality gate failures to action items via MCP. Processes action items with target='sonarqube' and creates corresponding quality tracking issues.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["sonarqube", "code-quality", "security", "static-analysis", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='sonarqube')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "sonarServer": { "type": "string", "description": "MCP server URL for SonarQube integration" },
+        "project": { "type": "string", "description": "SonarQube project key" },
+        "token": { "type": "string", "secret": true, "description": "SonarQube user token" }
+      },
+      "required": ["actions", "sonarServer", "project"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each SonarQube operation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Link SonarQube Gates",
+        "input": {
+          "server": ["input", "sonarServer"],
+          "toolName": ["const", "link_quality_gate"],
+          "arguments": {
+            "project": ["input", "project"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

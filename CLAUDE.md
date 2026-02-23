@@ -53,7 +53,7 @@ pnpm test:coverage    # Run tests with V8 coverage report
 ```
 covia-pm/
 ├── src/
-│   ├── assets/operations/        # 24 PM asset definitions (JSON)
+│   ├── assets/operations/        # 40 PM asset definitions (JSON)
 │   │   ├── index.ts              # Asset registry — exports all assets for deployment
 │   │   ├── pm-placeholder.json   # Deployment smoke-test asset
 │   │   ├── pm-analyzeMeeting.json
@@ -104,7 +104,7 @@ covia-pm/
 
 ### 1. Self-Deploying Assets
 
-On every `Grid.connect()`, `ensureAssets()` in `PMVenueClient` deploys all 24 asset JSON files to the venue. Assets are content-addressed (SHA-256 of JSON metadata), so re-deploying the same JSON is a no-op (venue returns 409 / "already exists", which is swallowed).
+On every `Grid.connect()`, `ensureAssets()` in `PMVenueClient` deploys all 40 asset JSON files to the venue. Assets are content-addressed (SHA-256 of JSON metadata), so re-deploying the same JSON is a no-op (venue returns 409 / "already exists", which is swallowed).
 
 ```
 Grid.connect(url)

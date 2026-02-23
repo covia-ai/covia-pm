@@ -1,0 +1,59 @@
+{
+  "name": "pm:sendDiscordNotifications",
+  "description": "Send Discord notifications for communication action items via MCP. Processes action items with target='discord' and posts messages to configured channels.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["discord", "communication", "notifications", "developer-community", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='discord')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "discordServer": { "type": "string", "description": "MCP server URL for Discord integration" },
+        "channel": { "type": "string", "description": "Discord channel name or ID" },
+        "token": { "type": "string", "secret": true, "description": "Discord bot token" }
+      },
+      "required": ["actions", "discordServer"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Discord message" },
+        "summary": { "type": "object", "description": "Summary of notifications sent" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Send Discord Notifications",
+        "input": {
+          "server": ["input", "discordServer"],
+          "toolName": ["const", "send_message"],
+          "arguments": {
+            "channel": ["input", "channel"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

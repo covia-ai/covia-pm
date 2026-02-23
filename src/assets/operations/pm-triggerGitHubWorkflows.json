@@ -1,0 +1,59 @@
+{
+  "name": "pm:triggerGitHubWorkflows",
+  "description": "Trigger GitHub Actions workflows for CI/CD action items via MCP. Processes action items with target='github-actions' by dispatching workflow runs.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["github-actions", "ci-cd", "workflows", "pipelines", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='github-actions')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "githubActionsServer": { "type": "string", "description": "MCP server URL for GitHub Actions integration" },
+        "repo": { "type": "string", "description": "Repository (owner/repo)" },
+        "token": { "type": "string", "secret": true, "description": "GitHub personal access token" }
+      },
+      "required": ["actions", "githubActionsServer", "repo"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each workflow trigger" },
+        "summary": { "type": "object", "description": "Summary of triggered workflows" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Trigger GitHub Workflows",
+        "input": {
+          "server": ["input", "githubActionsServer"],
+          "toolName": ["const", "trigger_workflow"],
+          "arguments": {
+            "repo": ["input", "repo"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

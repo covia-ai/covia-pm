@@ -1,0 +1,59 @@
+{
+  "name": "pm:scheduleOutlookEvents",
+  "description": "Schedule Outlook / Microsoft 365 calendar events for follow-up meetings and deadlines via MCP. Processes action items with target='outlook'.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["outlook", "microsoft-365", "calendar", "scheduling", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='outlook')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "outlookServer": { "type": "string", "description": "MCP server URL for Outlook / Microsoft 365 integration" },
+        "calendar": { "type": "string", "description": "Calendar ID or user email" },
+        "token": { "type": "string", "secret": true, "description": "Microsoft Graph API OAuth token" }
+      },
+      "required": ["actions", "outlookServer"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each calendar event creation" },
+        "summary": { "type": "object", "description": "Summary of events scheduled" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Schedule Outlook Events",
+        "input": {
+          "server": ["input", "outlookServer"],
+          "toolName": ["const", "create_event"],
+          "arguments": {
+            "calendar": ["input", "calendar"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

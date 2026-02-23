@@ -1,0 +1,59 @@
+{
+  "name": "pm:sendGoogleChatNotifications",
+  "description": "Send Google Chat notifications for communication action items via MCP. Processes action items with target='google-chat' and posts messages to configured spaces.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["google-chat", "communication", "notifications", "google-workspace", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='google-chat')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "googleChatServer": { "type": "string", "description": "MCP server URL for Google Chat integration" },
+        "space": { "type": "string", "description": "Google Chat space name or ID" },
+        "token": { "type": "string", "secret": true, "description": "Google service account or OAuth token" }
+      },
+      "required": ["actions", "googleChatServer"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Google Chat message" },
+        "summary": { "type": "object", "description": "Summary of notifications sent" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Send Google Chat Notifications",
+        "input": {
+          "server": ["input", "googleChatServer"],
+          "toolName": ["const", "send_message"],
+          "arguments": {
+            "space": ["input", "space"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

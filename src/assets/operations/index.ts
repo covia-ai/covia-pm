@@ -17,6 +17,36 @@ import pmLinkSentryIssues from './pm-linkSentryIssues.json';
 import pmExecuteGitLabActions from './pm-executeGitLabActions.json';
 import pmScheduleCalendarEvents from './pm-scheduleCalendarEvents.json';
 
+// Wave 2 — issue trackers
+import pmExecuteAsanaActions from './pm-executeAsanaActions.json';
+import pmExecuteShortcutActions from './pm-executeShortcutActions.json';
+
+// Wave 2 — VCS
+import pmExecuteBitbucketActions from './pm-executeBitbucketActions.json';
+import pmExecuteAzureReposActions from './pm-executeAzureReposActions.json';
+
+// Wave 2 — CI/CD
+import pmTriggerGitHubWorkflows from './pm-triggerGitHubWorkflows.json';
+import pmTriggerGitLabPipelines from './pm-triggerGitLabPipelines.json';
+import pmTriggerJenkinsBuilds from './pm-triggerJenkinsBuilds.json';
+import pmTriggerCircleCIBuilds from './pm-triggerCircleCIBuilds.json';
+
+// Wave 2 — observability
+import pmLinkDatadogMonitors from './pm-linkDatadogMonitors.json';
+import pmEmbedGrafanaDashboards from './pm-embedGrafanaDashboards.json';
+
+// Wave 2 — security
+import pmCreateSnykIssues from './pm-createSnykIssues.json';
+import pmLinkSonarQubeGates from './pm-linkSonarQubeGates.json';
+import pmLinkSecurityAlerts from './pm-linkSecurityAlerts.json';
+
+// Wave 2 — communication
+import pmSendGoogleChatNotifications from './pm-sendGoogleChatNotifications.json';
+import pmSendDiscordNotifications from './pm-sendDiscordNotifications.json';
+
+// Wave 2 — scheduling
+import pmScheduleOutlookEvents from './pm-scheduleOutlookEvents.json';
+
 // Wave 1 — meeting intelligence fetch assets
 import pmFetchGranolaNote from './pm-fetchGranolaNote.json';
 import pmFetchFathomSummary from './pm-fetchFathomSummary.json';
@@ -47,6 +77,29 @@ const pmAssets: object[] = [
   pmLinkSentryIssues,
   pmExecuteGitLabActions,
   pmScheduleCalendarEvents,
+  // Wave 2 — issue trackers
+  pmExecuteAsanaActions,
+  pmExecuteShortcutActions,
+  // Wave 2 — VCS
+  pmExecuteBitbucketActions,
+  pmExecuteAzureReposActions,
+  // Wave 2 — CI/CD
+  pmTriggerGitHubWorkflows,
+  pmTriggerGitLabPipelines,
+  pmTriggerJenkinsBuilds,
+  pmTriggerCircleCIBuilds,
+  // Wave 2 — observability
+  pmLinkDatadogMonitors,
+  pmEmbedGrafanaDashboards,
+  // Wave 2 — security
+  pmCreateSnykIssues,
+  pmLinkSonarQubeGates,
+  pmLinkSecurityAlerts,
+  // Wave 2 — communication
+  pmSendGoogleChatNotifications,
+  pmSendDiscordNotifications,
+  // Wave 2 — scheduling
+  pmScheduleOutlookEvents,
   // Wave 1 — meeting intelligence
   pmFetchGranolaNote,
   pmFetchFathomSummary,
@@ -77,6 +130,24 @@ export {
   pmLinkSentryIssues,
   pmExecuteGitLabActions,
   pmScheduleCalendarEvents,
+  // Wave 2
+  pmExecuteAsanaActions,
+  pmExecuteShortcutActions,
+  pmExecuteBitbucketActions,
+  pmExecuteAzureReposActions,
+  pmTriggerGitHubWorkflows,
+  pmTriggerGitLabPipelines,
+  pmTriggerJenkinsBuilds,
+  pmTriggerCircleCIBuilds,
+  pmLinkDatadogMonitors,
+  pmEmbedGrafanaDashboards,
+  pmCreateSnykIssues,
+  pmLinkSonarQubeGates,
+  pmLinkSecurityAlerts,
+  pmSendGoogleChatNotifications,
+  pmSendDiscordNotifications,
+  pmScheduleOutlookEvents,
+  // Wave 1 — meeting intelligence
   pmFetchGranolaNote,
   pmFetchFathomSummary,
   pmFetchFirefliesTranscript,

@@ -2,29 +2,31 @@
 
 Federated AI project management frontend for the [Covia Grid](https://www.covia.ai).
 
-Paste or fetch meeting notes → LLM extracts action items → execute across 12 integrations in one click.
+Paste or fetch meeting notes → LLM extracts action items → execute across 28 integrations in one click.
 
 ---
 
 ## What It Does
 
-Covia PM is a **self-deploying** React app. When you connect to any Covia venue it automatically registers 24 PM operation definitions as venue assets, then uses them to:
+Covia PM is a **self-deploying** React app. When you connect to any Covia venue it automatically registers 40 PM operation definitions as venue assets, then uses them to:
 
 - **Analyse** meeting notes with GPT-4 (or any LLM the venue is configured for) to extract action items, blockers, and decisions
 - **Fetch transcripts** directly from 9 meeting intelligence tools so you never have to copy-paste
 - **Execute** the delegation plan across whichever integrations are configured — each target runs independently so a Jira failure doesn't block GitHub
 
-### Execution integrations (12)
+### Execution integrations (28)
 
 | Category | Tools |
 |----------|-------|
-| Issue trackers | Jira, Linear, Azure DevOps |
-| Version control | GitHub, GitLab |
-| Communication | Slack, Microsoft Teams, Email |
+| Issue trackers | Jira, Linear, Azure DevOps, Asana, Shortcut |
+| Version control | GitHub, GitLab, Bitbucket, Azure Repos |
+| CI / CD | GitHub Actions, GitLab CI, Jenkins, CircleCI |
+| Communication | Slack, Microsoft Teams, Email, Google Chat, Discord |
 | Incident management | PagerDuty |
-| Observability | Sentry |
+| Observability | Sentry, Datadog, Grafana |
+| Security & quality | Snyk, SonarQube, GitHub Advanced Security |
 | Documentation | Confluence |
-| Calendar | Google Calendar |
+| Calendar | Google Calendar, Outlook / M365 |
 
 ### Meeting intelligence sources (9)
 
@@ -194,9 +196,10 @@ pnpm test:coverage    # Coverage report
 | 5 | Settings, dark mode, responsive layout, error boundary | ✅ |
 | 6 | Wave 1 — 12 execution targets, 9 transcript sources, accordion UI | ✅ |
 | 7 | MCP health checks | ✅ |
-| 8 | Unit and component test suite (114 tests) | ✅ |
-| — | Integration tests (MSW), E2E (Playwright) | Planned |
-| — | Wave 2 — enterprise integrations (Asana, Bitbucket, Datadog, …) | Planned |
+| 8 | Unit, component, and integration test suite (147 tests) | ✅ |
+| 9 | Wave 2 — 16 new integrations (28 execution targets total) | ✅ |
+| — | E2E tests (Playwright) | Planned |
+| — | Wave 3 — customer lifecycle integrations (Zendesk, HubSpot, …) | Planned |
 
 ---
 

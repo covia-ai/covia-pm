@@ -1,0 +1,59 @@
+{
+  "name": "pm:createSnykIssues",
+  "description": "Create Snyk tracking issues from security vulnerability action items via MCP. Processes action items with target='snyk' and creates corresponding Snyk issues.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["snyk", "security", "vulnerabilities", "code-quality", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='snyk')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "snykServer": { "type": "string", "description": "MCP server URL for Snyk integration" },
+        "project": { "type": "string", "description": "Snyk project ID or slug" },
+        "token": { "type": "string", "secret": true, "description": "Snyk API token" }
+      },
+      "required": ["actions", "snykServer", "project"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Snyk issue creation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Create Snyk Issues",
+        "input": {
+          "server": ["input", "snykServer"],
+          "toolName": ["const", "create_issue"],
+          "arguments": {
+            "project": ["input", "project"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}

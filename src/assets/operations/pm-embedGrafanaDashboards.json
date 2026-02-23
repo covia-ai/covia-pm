@@ -1,0 +1,59 @@
+{
+  "name": "pm:embedGrafanaDashboards",
+  "description": "Snapshot Grafana dashboards and embed observability context into meeting summaries via MCP. Processes action items with target='grafana'.",
+  "creator": "Covia PM",
+  "dateCreated": "2026-02-23T00:00:00Z",
+  "keywords": ["grafana", "observability", "dashboards", "metrics", "mcp"],
+  "operation": {
+    "adapter": "orchestrator",
+    "input": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "Array of action items to execute (filtered to target='grafana')",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "assignee": { "type": "string" },
+              "priority": { "type": "string" },
+              "metadata": { "type": "object" }
+            }
+          }
+        },
+        "grafanaServer": { "type": "string", "description": "MCP server URL for Grafana integration" },
+        "dashboard": { "type": "string", "description": "Grafana dashboard UID or URL" },
+        "token": { "type": "string", "secret": true, "description": "Grafana service account token" }
+      },
+      "required": ["actions", "grafanaServer"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "results": { "type": "array", "description": "Results from each Grafana operation" },
+        "summary": { "type": "object", "description": "Summary of execution results" }
+      }
+    },
+    "steps": [
+      {
+        "op": "mcp:tools:call",
+        "name": "Embed Grafana Dashboards",
+        "input": {
+          "server": ["input", "grafanaServer"],
+          "toolName": ["const", "snapshot_dashboard"],
+          "arguments": {
+            "dashboard": ["input", "dashboard"],
+            "actions": ["input", "actions"]
+          },
+          "token": ["input", "token"]
+        }
+      }
+    ],
+    "result": {
+      "results": [0, "result"],
+      "summary": [0, "summary"]
+    }
+  }
+}
